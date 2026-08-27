@@ -18,8 +18,7 @@ class CronKeyFilter implements FilterInterface
                 ->setJSON(['error' => ['code' => 'CRON_NOT_CONFIGURED', 'message' => 'Der Cron-Zugang ist nicht konfiguriert.']]);
         }
 
-        $authorization = $request->getHeaderLine('Authorization');
-        $providedKey = str_starts_with($authorization, 'Bearer ') ? substr($authorization, 7) : '';
+        $providedKey = $request->getHeaderLine('X-Cron-Key');
         if ($providedKey !== '' && hash_equals($configuredKey, $providedKey)) {
             return null;
         }

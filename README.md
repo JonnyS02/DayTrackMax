@@ -32,6 +32,6 @@ The build keeps `frontend/dist` as an inspectable Vite output and synchronizes i
 
 ## Backend
 
-Run `composer install` from `backend/`. The API base path is `/api`; the daily reminder endpoint is `POST /api/cron/birthday-reminders` with `Authorization: Bearer <daytrack.cronKey>`.
+Run `composer install` from `backend/`. The API base path is `/api`; the daily reminder endpoint is `POST /api/cron/birthday-reminders` with `X-Cron-Key: <daytrack.cronKey>`.
 
 For deployment, run `npm run build` in `frontend` and then deploy only `backend`. When that directory is placed at `htdocs/DayTrackMax`, the application is available at `/DayTrackMax/`; `/public` is routed internally and never appears in the URL. A virtual host may alternatively use `backend/public` directly as its web root. The server does not need Node.js or the frontend source.

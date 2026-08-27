@@ -6,10 +6,6 @@ ServerSignature Off
 	Options +FollowSymlinks
 	RewriteEngine On
 
-	# Forward the cron authorization header to CodeIgniter.
-	RewriteCond %{HTTP:Authorization} .
-	RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
 	# Keep the API on CodeIgniter while React owns all other application routes.
 	RewriteRule ^(api(?:/.*)?)$ index.php/$1 [L,NC,QSA]
 

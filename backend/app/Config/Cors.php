@@ -69,7 +69,7 @@ class Cors extends BaseConfig
          *
          * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
          */
-        'allowedHeaders' => ['Accept', 'Authorization', 'Content-Type', 'X-CSRF-TOKEN'],
+        'allowedHeaders' => ['Accept', 'Content-Type', 'X-CSRF-TOKEN'],
 
         /**
          * Set headers to expose.

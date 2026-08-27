@@ -14,10 +14,6 @@ ServerSignature Off
     Options +FollowSymlinks
     RewriteEngine On
 
-    # Preserve bearer tokens when PHP runs through CGI/FastCGI.
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
     # CodeIgniter owns the complete API namespace and validates its routes and methods.
     RewriteRule ^api(?:/(.*))?$ public/index.php/api/$1 [END,NC,QSA]
 
