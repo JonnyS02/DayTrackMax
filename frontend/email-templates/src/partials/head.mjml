@@ -1,0 +1,8 @@
+<mj-attributes>
+  <mj-all font-family="Arial, Helvetica, sans-serif" />
+  <mj-text color="#3f2d32" font-size="16px" line-height="25px" padding="0" />
+  <mj-class name="title" color="#3f2d32" font-size="30px" font-weight="700" line-height="36px" padding="0 0 16px" />
+  <mj-class name="muted" color="#76686b" font-size="13px" line-height="20px" />
+  <mj-button background-color="#ee735e" border-radius="14px" color="#ffffff" font-size="15px" font-weight="700" inner-padding="14px 24px" padding="24px 0 0" />
+</mj-attributes>
+<mj-preview>{{preview_text}}</mj-preview>

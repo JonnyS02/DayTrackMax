@@ -1,0 +1,46 @@
+# Environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+auth.json
+
+# Dependencies
+frontend/node_modules/
+backend/vendor/
+
+# Generated frontend builds
+frontend/dist/
+backend/public/assets/
+backend/public/favicon.svg
+backend/public/index.html
+backend/public/og.png
+
+# CodeIgniter runtime data
+backend/writable/cache/**
+backend/writable/debugbar/**
+backend/writable/logs/**
+backend/writable/session/**
+backend/writable/uploads/**
+!backend/writable/cache/index.html
+!backend/writable/debugbar/index.html
+!backend/writable/logs/index.html
+!backend/writable/session/index.html
+!backend/writable/uploads/index.html
+
+# Database dumps; keep the reproducible schema
+*.sql
+!backend/database.sql
+
+# Logs and local tooling
+*.log
+npm-debug.log*
+.idea/
+.vscode/
+*.iml
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini

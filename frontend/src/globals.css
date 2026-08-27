@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-sand-50: #fffaf4;
+  --color-sand-100: #f8eee2;
+  --color-sand-200: #ead9c8;
+  --color-coral-100: #ffe1d5;
+  --color-coral-300: #ffad91;
+  --color-coral-500: #ee735e;
+  --color-coral-600: #d95c4f;
+  --color-rose-500: #a74f58;
+  --color-peach-200: #ffd6a2;
+  --color-peach-400: #f6a85f;
+  --color-plum-100: #eadbe4;
+  --color-plum-700: #713d59;
+  --color-plum-800: #4c2c42;
+  --color-sand-600: #9b6847;
+  --color-ocean-100: #d9efea;
+  --color-ocean-500: #3b9b92;
+  --color-ink: #3f2d32;
+}
+
+html { background: var(--color-sand-50); }
+
+button { cursor: pointer; }
+::selection { background: var(--color-coral-100); color: var(--color-plum-800); }

@@ -1,0 +1,39 @@
+{
+  "name": "@daytrack-max/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3000",
+    "build": "tsc && vite build && node scripts/deploy-to-backend-public.mjs",
+    "preview": "vite preview --port 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc",
+    "emails:build": "node email-templates/build.mjs",
+    "emails:watch": "node email-templates/build.mjs --watch"
+  },
+  "dependencies": {
+    "framer-motion": "^13.1.1",
+    "lucide-react": "^1.34.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "^7.18.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@vitejs/plugin-react": "6.1.0",
+    "eslint": "9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.5",
+    "globals": "^17.11.0",
+    "mjml": "^5.4.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.68.0",
+    "vite": "8.2.2"
+  }
+}

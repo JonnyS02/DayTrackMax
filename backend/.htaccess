@@ -1,0 +1,24 @@
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    Options +FollowSymlinks
+    RewriteEngine On
+
+    # Keep /public out of visible URLs, including direct requests to that path.
+    RewriteCond %{THE_REQUEST} \s/+(.*/)?public/?([^\s?]*) [NC]
+    RewriteRule ^public/?(.*)$ %2 [R=301,L,NE]
+
+    # Never expose backend source, dependencies, configuration, or runtime data.
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule ^(?:app|vendor|writable)(?:/|$) - [F,L]
+    RewriteRule ^(?:composer\.(?:json|lock)|database\.sql|LICENSE|preload\.php|spark|.*\.md)$ - [F,L,NC]
+
+    # Internal rewrites already targeting the public directory must stop here.
+    RewriteRule ^public(?:/|$) - [L]
+
+    # Serve the combined React and CodeIgniter application from public.
+    RewriteRule ^$ public/index.html [L]
+    RewriteRule ^api/?(.*)$ public/index.php/api/$1 [L,NC,QSA]
+    RewriteRule ^(.+)$ public/$1 [L]
+</IfModule>
