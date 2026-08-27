@@ -14,14 +14,6 @@ class Images extends BaseConfig
     public string $defaultHandler = 'gd';
 
     /**
-     * The path to the image library.
-     * Required for ImageMagick, GraphicsMagick, or NetPBM.
-     *
-     * @deprecated 4.7.0 No longer used.
-     */
-    public string $libraryPath = '/usr/local/bin/convert';
-
-    /**
      * The available handler classes.
      *
      * @var array<string, string>

@@ -1,24 +1,34 @@
 Options -Indexes
 ServerSignature Off
 
+<IfModule mod_headers.c>
+    Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https:"
+    Header always set Permissions-Policy "camera=(), geolocation=(), microphone=()"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
 <IfModule mod_rewrite.c>
     Options +FollowSymlinks
     RewriteEngine On
 
-    # Keep /public out of visible URLs, including direct requests to that path.
-    RewriteCond %{THE_REQUEST} \s/+(.*/)?public/?([^\s?]*) [NC]
-    RewriteRule ^public/?(.*)$ %2 [R=301,L,NE]
+    # Preserve bearer tokens when PHP runs through CGI/FastCGI.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Never expose backend source, dependencies, configuration, or runtime data.
-    RewriteRule (^|/)\. - [F,L]
-    RewriteRule ^(?:app|vendor|writable)(?:/|$) - [F,L]
-    RewriteRule ^(?:composer\.(?:json|lock)|database\.sql|LICENSE|preload\.php|spark|.*\.md)$ - [F,L,NC]
+    # CodeIgniter owns the complete API namespace and validates its routes and methods.
+    RewriteRule ^api(?:/(.*))?$ public/index.php/api/$1 [END,NC,QSA]
 
-    # Internal rewrites already targeting the public directory must stop here.
-    RewriteRule ^public(?:/|$) - [L]
+    # Only known React pages may receive the application shell.
+    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
+    RewriteRule ^(?:|login/?|register/?|verify-email/?|forgot-password/?|locked/?|reset-password/?|profile/?)$ public/index.html [END]
 
-    # Serve the combined React and CodeIgniter application from public.
-    RewriteRule ^$ public/index.html [L]
-    RewriteRule ^api/?(.*)$ public/index.php/api/$1 [L,NC,QSA]
-    RewriteRule ^(.+)$ public/$1 [L]
+    # Only generated frontend assets and intentional public metadata are files on the web.
+    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
+    RewriteRule ^(assets/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:css|js|mjs|png|jpe?g|gif|svg|ico|webp|woff2?)|favicon\.svg|og\.png|robots\.txt)$ public/$1 [END,NC]
+
+    # Everything else stays outside the public surface, whether the file exists or not.
+    RewriteRule ^ - [R=404,L]
 </IfModule>

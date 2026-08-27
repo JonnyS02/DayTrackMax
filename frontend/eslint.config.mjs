@@ -8,7 +8,7 @@ import tseslint from 'typescript-eslint';
 const eslintConfig = defineConfig([
   globalIgnores(['dist/**']),
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'email-templates/**/*.mjs'],
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 2022,

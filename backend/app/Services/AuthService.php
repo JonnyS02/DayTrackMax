@@ -80,7 +80,7 @@ class AuthService
                 $failedLogin = $this->users->recordFailedLoginAttempt((int) $user['id']);
                 if ($failedLogin['attempts'] >= 3) {
                     if ($failedLogin['newlyLocked']) {
-                        $this->trySendingReset($user);
+                        $this->trySendingReset($user, true);
                         throw new ApiException('ACCOUNT_LOCKED', 'Das Konto wurde gesperrt. Ein Reset-Link wurde per E-Mail versendet.', 423);
                     }
 
@@ -194,7 +194,7 @@ class AuthService
     {
         $user = $this->users->findByEmail($this->normalizeEmail($email));
         if ($user !== null) {
-            $this->trySendingReset($user);
+            $this->trySendingReset($user, (int) $user['failed_login_attempts'] >= 3);
         }
     }
 
@@ -271,15 +271,12 @@ class AuthService
         $this->database->transBegin();
         try {
             $this->users->update($userId, ['name' => trim($name), 'pending_email' => $email]);
-            $this->tokens->deleteForUserAndPurpose($userId, self::VERIFY_EMAIL_CHANGE);
+            $this->sendVerification($user, self::VERIFY_EMAIL_CHANGE, $email);
             $this->database->transCommit();
         } catch (Throwable $exception) {
             $this->database->transRollback();
             throw $exception;
         }
-
-        $user = $this->requireUser($userId);
-        $this->sendVerification($user, self::VERIFY_EMAIL_CHANGE, $email);
 
         return $this->profile($userId);
     }
@@ -302,15 +299,22 @@ class AuthService
 
     private function sendVerification(array $user, string $purpose, string $recipient): void
     {
+        $emailChange = $purpose === self::VERIFY_EMAIL_CHANGE;
+
         $this->deliverToken(
             (int) $user['id'],
             $purpose,
             $this->config->verificationTokenMinutes,
-            function (string $token) use ($user, $recipient): void {
+            function (string $token) use ($user, $recipient, $emailChange): void {
                 $url = $this->frontendURL('/verify-email?token=' . rawurlencode($token));
-                $this->mail->send('verify-email', $recipient, 'E-Mail bestätigen', [
-                    'preview_text' => 'Bestätige deine E-Mail-Adresse für DayTrack Max.',
+                $this->mail->send('verify-email', $recipient, $emailChange ? 'E-Mail-Änderung bestätigen' : 'E-Mail bestätigen', [
+                    'preview_text' => $emailChange
+                        ? 'Bestätige deine neue E-Mail-Adresse für DayTrack Max.'
+                        : 'Bestätige deine E-Mail-Adresse für DayTrack Max.',
                     'user_name' => $user['name'],
+                    'verification_message' => $emailChange
+                        ? 'Bestätige deine neue E-Mail-Adresse, um die Änderung abzuschließen.'
+                        : 'Bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren.',
                     'verification_url' => $url,
                     'expires_in' => $this->durationLabel($this->config->verificationTokenMinutes),
                 ]);
@@ -318,28 +322,36 @@ class AuthService
         );
     }
 
-    private function sendReset(array $user): void
+    private function sendReset(array $user, bool $accountLocked = false): void
     {
+        $expiresIn = $this->durationLabel($this->config->resetTokenMinutes);
+
         $this->deliverToken(
             (int) $user['id'],
             self::RESET_PASSWORD,
             $this->config->resetTokenMinutes,
-            function (string $token) use ($user): void {
+            function (string $token) use ($user, $accountLocked, $expiresIn): void {
                 $url = $this->frontendURL('/reset-password?token=' . rawurlencode($token));
                 $this->mail->send('reset-password', $user['email'], 'Passwort zurücksetzen', [
-                    'preview_text' => 'Lege ein neues Passwort für DayTrack Max fest.',
+                    'preview_text' => $accountLocked
+                        ? 'Entsperre dein DayTrack-Max-Konto mit einem neuen Passwort.'
+                        : 'Lege ein neues Passwort für DayTrack Max fest.',
                     'user_name' => $user['name'],
+                    'reset_message' => $accountLocked
+                        ? 'Dein Konto wurde nach drei fehlgeschlagenen Anmeldeversuchen gesperrt. Lege ein neues Passwort fest, um es wieder zu verwenden.'
+                        : 'Über diesen Link kannst du ein neues Passwort festlegen.',
+                    'reset_note' => 'Der Link ist ' . $expiresIn . ' gültig.'
+                        . ($accountLocked ? '' : ' Falls du das nicht warst, kannst du diese E-Mail ignorieren.'),
                     'reset_url' => $url,
-                    'expires_in' => $this->durationLabel($this->config->resetTokenMinutes),
                 ]);
             },
         );
     }
 
-    private function trySendingReset(array $user): void
+    private function trySendingReset(array $user, bool $accountLocked = false): void
     {
         try {
-            $this->sendReset($user);
+            $this->sendReset($user, $accountLocked);
         } catch (Throwable $exception) {
             log_message('error', 'Passwort-Reset-E-Mail fehlgeschlagen: {message}', ['message' => $exception->getMessage()]);
         }

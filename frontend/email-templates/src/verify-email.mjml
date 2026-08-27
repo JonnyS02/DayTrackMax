@@ -8,7 +8,7 @@
       <mj-section background-color="#ffffff" border-radius="0 0 24px 24px" padding="36px 28px">
         <mj-column>
           <mj-text mj-class="title">E-Mail bestätigen</mj-text>
-          <mj-text>Hallo {{user_name}}, bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren.</mj-text>
+          <mj-text>Hallo {{user_name}}, {{verification_message}}</mj-text>
           <mj-button href="{{verification_url}}">E-Mail bestätigen</mj-button>
           <mj-text mj-class="muted" padding="20px 0 0">Der Link ist {{expires_in}} gültig.</mj-text>
         </mj-column>

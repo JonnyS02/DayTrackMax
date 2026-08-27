@@ -3,6 +3,7 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
+use InvalidArgumentException;
 
 /**
  * Cross-Origin Resource Sharing (CORS) Configuration
@@ -107,7 +108,17 @@ class Cors extends BaseConfig
     {
         parent::__construct();
 
-        $frontendURL = rtrim(config(DayTrack::class)->frontendURL, '/');
-        $this->default['allowedOrigins'] = $frontendURL === '' ? [] : [$frontendURL];
+        $frontendURL = config(DayTrack::class)->frontendURL;
+        $parts = parse_url($frontendURL);
+        if ($parts === false || ! isset($parts['scheme'], $parts['host'])) {
+            throw new InvalidArgumentException('daytrack.frontendURL muss eine vollständige URL enthalten.');
+        }
+
+        $origin = $parts['scheme'] . '://' . $parts['host'];
+        if (isset($parts['port'])) {
+            $origin .= ':' . $parts['port'];
+        }
+
+        $this->default['allowedOrigins'] = [$origin];
     }
 }

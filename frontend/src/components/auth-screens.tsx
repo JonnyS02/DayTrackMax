@@ -53,7 +53,7 @@ function AuthIcon({ children, tone, large = false, centered = false }: { childre
   return <div className={cn('grid place-items-center rounded-2xl', large ? 'mb-5 h-14 w-14 sm:mb-7 sm:h-16 sm:w-16 sm:rounded-3xl' : 'mb-5 h-12 w-12 sm:mb-6 sm:h-14 sm:w-14', centered && 'mx-auto', authIconStyles[tone])}>{children}</div>;
 }
 
-function AuthStatus({ icon, title, children, primaryLabel, onPrimary, resendLabel, onResend, busy = false }: { icon: ReactNode; title: string; children: ReactNode; primaryLabel: string; onPrimary: () => void; resendLabel?: string; onResend?: () => void; busy?: boolean }) {
+function AuthStatus({ icon, title, children, primaryLabel, onPrimary, onResend, busy = false }: { icon: ReactNode; title: string; children: ReactNode; primaryLabel: string; onPrimary: () => void; onResend?: () => void; busy?: boolean }) {
   return (
     <AuthLayout>
       <AuthPanel centered>
@@ -61,7 +61,7 @@ function AuthStatus({ icon, title, children, primaryLabel, onPrimary, resendLabe
         <Title>{title}</Title>
         <div className="mb-7 text-sm leading-6 text-stone-500">{children}</div>
         <Button onClick={onPrimary} size="large" className="w-full" disabled={busy}>{primaryLabel}</Button>
-        {onResend && <button onClick={onResend} disabled={busy} className={cn('mt-5 text-sm disabled:opacity-50', uiStyles.textLink)}>{resendLabel ?? 'Erneut senden'}</button>}
+        {onResend && <button onClick={onResend} disabled={busy} className={cn('mt-5 text-sm disabled:opacity-50', uiStyles.textLink)}>Erneut senden</button>}
       </AuthPanel>
     </AuthLayout>
   );

@@ -17,6 +17,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
   const [passwordError, setPasswordError] = useState('');
   const [deleteFeedback, setDeleteFeedback] = useState({ message: '', fields: {} as Record<string, string> });
   const [isSaving, setIsSaving] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [isRequestingPasswordChange, setIsRequestingPasswordChange] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -48,6 +49,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    const emailChangeRequested = requiresPassword;
     setProfileFeedback({ message: '', fields: {} });
     setIsSaving(true);
     try {
@@ -57,13 +59,30 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
       setActiveEmail(user.email);
       setPendingEmail(user.pendingEmail);
       setCurrentPassword('');
-      showToast(user.pendingEmail ? 'Bestätigungslink gesendet' : 'Profil gespeichert');
+      showToast(emailChangeRequested ? 'Bestätigungslink gesendet' : 'Profil gespeichert');
     } catch (requestError) {
       if (!redirectIfUnauthorized(requestError)) {
         setProfileFeedback(formErrors(requestError, ['name', 'email', 'currentPassword']));
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const resendEmailVerification = async () => {
+    if (!pendingEmail) return;
+
+    setProfileFeedback({ message: '', fields: {} });
+    setIsResendingVerification(true);
+    try {
+      await api.requestEmailVerification(pendingEmail);
+      showToast('Bestätigungslink erneut gesendet');
+    } catch (requestError) {
+      if (!redirectIfUnauthorized(requestError)) {
+        setProfileFeedback({ message: errorMessage(requestError), fields: {} });
+      }
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -132,7 +151,14 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
                 <Field id="profile-email" name="email" label="E-Mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} icon={<Mail size={17} />} error={profileFeedback.fields.email} required />
                 {requiresPassword && <Field id="profile-current-password" name="currentPassword" label="Aktuelles Passwort" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} icon={<KeyRound size={17} />} error={profileFeedback.fields.currentPassword} required />}
                 <FormError message={profileFeedback.message} />
-                <Button type="submit" disabled={isSaving}><Save size={17} /> {isSaving ? 'Speichert …' : 'Speichern'}</Button>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button type="submit" disabled={isSaving || isResendingVerification}><Save size={17} /> {isSaving ? 'Speichert …' : 'Speichern'}</Button>
+                  {pendingEmail && normalizedEmail === pendingEmail.toLowerCase() && (
+                    <Button type="button" variant="secondary" onClick={resendEmailVerification} disabled={isResendingVerification || isSaving}>
+                      <Mail size={17} /> {isResendingVerification ? 'Sendet …' : 'Link erneut senden'}
+                    </Button>
+                  )}
+                </div>
               </form>
             </Surface>
 
