@@ -1,10 +1,11 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { BellRing, CalendarDays } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import type { ReactNode } from 'react';
 import { formErrors } from '../api';
 import { uiStyles } from '../design';
 import type { Birthday, BirthdayInput } from '../types';
-import { cn } from '../utils';
+import { cn, nextReminderDateLabel } from '../utils';
 import { Button, Field, FormError, Modal } from './ui';
 
 const emptyBirthday: BirthdayInput = {
@@ -41,7 +42,18 @@ function ReminderToggle({ label, tone, checked, onChange, children }: { label: s
         </span>
         <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-coral-500" />
       </label>
-      {checked && children}
+      <AnimatePresence initial={false}>
+        {checked && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -51,6 +63,7 @@ export function BirthdayForm({ birthday, onClose, onSave }: { birthday: Birthday
   const [feedback, setFeedback] = useState({ message: '', fields: {} as Record<string, string> });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const update = <Key extends keyof BirthdayInput>(key: Key, value: BirthdayInput[Key]) => setForm((current) => ({ ...current, [key]: value }));
+  const nextReminderDate = nextReminderDateLabel(form.birthDate, form.notifyDaysBefore);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -75,9 +88,10 @@ export function BirthdayForm({ birthday, onClose, onSave }: { birthday: Birthday
         <Field id="birth-date" label="Geburtsdatum" type="date" value={form.birthDate} onChange={(event) => update('birthDate', event.target.value)} icon={<CalendarDays size={17} />} error={feedback.fields.birthDate} required />
         <ReminderToggle label="E-Mail am Geburtstag" tone="coral" checked={form.notifyOnBirthday} onChange={(checked) => update('notifyOnBirthday', checked)} />
         <ReminderToggle label="Vorab erinnern" tone="peach" checked={form.notifyDaysBefore !== null} onChange={(checked) => update('notifyDaysBefore', checked ? 7 : null)}>
-          <label className="flex items-center gap-2 border-t border-sand-200 px-3 py-2.5 text-sm text-stone-500 sm:px-4 sm:py-3">
+          <label className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-sand-200 px-3 py-2.5 text-sm text-stone-500 sm:px-4 sm:py-3">
             <input type="number" min="1" max="365" value={form.notifyDaysBefore ?? 7} onChange={(event) => update('notifyDaysBefore', Math.max(1, Number(event.target.value)))} className={cn('h-9 w-16 rounded-xl border border-sand-200 bg-white px-2 text-center font-bold text-ink', uiStyles.focusRing)} aria-label="Vorab-Erinnerung in Tagen" />
             <span>{form.notifyDaysBefore === 1 ? 'Tag vorher' : 'Tage vorher'}</span>
+            {nextReminderDate && <span className="w-full text-xs font-semibold text-stone-600 sm:ml-auto sm:w-auto">Nächste Erinnerung: {nextReminderDate}</span>}
           </label>
         </ReminderToggle>
         <FormError message={feedback.message} />

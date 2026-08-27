@@ -182,7 +182,7 @@ export function Surface({ children, className }: { children: ReactNode; classNam
 export function Footer() {
   return (
     <footer className="px-4 py-5 text-center text-xs font-normal leading-normal text-stone-400">
-      © {new Date().getFullYear()} DayTrack Max by Jonathan Stengl. All rights reserved.
+      © {new Date().getFullYear()} Jonathan Stengl
     </footer>
   );
 }
