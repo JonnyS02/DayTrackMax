@@ -184,7 +184,7 @@ function Register({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
       <Field id="register-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="max.mustermann@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required />
       <PasswordField autoComplete="new-password" error={feedback.fields.password} value={password} onChange={(event) => setPassword(event.target.value)} showRequirements />
       <PasswordField label="Passwort wiederholen" id="passwordConfirmation" autoComplete="new-password" error={feedback.fields.passwordConfirmation} />
-      <label className="flex items-start gap-3 text-sm leading-6 text-stone-500"><input type="checkbox" required className={cn('mt-1 shrink-0', uiStyles.checkbox)} /><span><button type="button" className={uiStyles.textLink}>AGB</button> und Datenschutz akzeptieren</span></label>
+      <label className="flex items-start gap-3 text-sm leading-6 text-stone-500"><input type="checkbox" required className={cn('mt-1 shrink-0', uiStyles.checkbox)} /><span>Datenschutz akzeptieren</span></label>
       <FormError message={feedback.message} />
       <Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? 'Erstellt …' : 'Konto erstellen'}</Button>
     </form></AuthPanel></AuthLayout>
