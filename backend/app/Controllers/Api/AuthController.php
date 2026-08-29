@@ -102,7 +102,7 @@ class AuthController extends ApiController
 
         return $this->action(function () use ($input): ResponseInterface {
             service('authService')->requestPasswordReset($input['email']);
-            return $this->data(['message' => 'Falls ein Konto besteht, wurde ein Reset-Link versendet.']);
+            return $this->data(['message' => 'Falls ein Konto existiert, wurde ein Reset-Link versendet.']);
         });
     }
 

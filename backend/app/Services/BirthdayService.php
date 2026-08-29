@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\ApiException;
 use App\Models\BirthdayModel;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 use Config\DayTrack;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -24,7 +25,14 @@ class BirthdayService
      */
     public function create(int $userId, array $input): array
     {
-        $birthdayId = (int) $this->birthdays->insert($this->databaseData($input) + ['user_id' => $userId], true);
+        $data = $this->databaseData($input);
+        $this->ensureUniqueName($userId, $data['first_name'], $data['last_name']);
+
+        try {
+            $birthdayId = (int) $this->birthdays->insert($data + ['user_id' => $userId], true);
+        } catch (DatabaseException $exception) {
+            $this->rethrowWriteFailure($exception, $userId, $data['first_name'], $data['last_name']);
+        }
 
         return $this->present($this->requireBirthday($birthdayId, $userId));
     }
@@ -36,7 +44,14 @@ class BirthdayService
     public function update(int $userId, int $birthdayId, array $input): array
     {
         $this->requireBirthday($birthdayId, $userId);
-        $this->birthdays->update($birthdayId, $this->databaseData($input));
+        $data = $this->databaseData($input);
+        $this->ensureUniqueName($userId, $data['first_name'], $data['last_name'], $birthdayId);
+
+        try {
+            $this->birthdays->update($birthdayId, $data);
+        } catch (DatabaseException $exception) {
+            $this->rethrowWriteFailure($exception, $userId, $data['first_name'], $data['last_name'], $birthdayId);
+        }
 
         return $this->present($this->requireBirthday($birthdayId, $userId));
     }
@@ -184,6 +199,36 @@ class BirthdayService
             'notify_on_birthday' => $input['notifyOnBirthday'],
             'notify_days_before' => $input['notifyDaysBefore'] ?? null,
         ];
+    }
+
+    private function ensureUniqueName(int $userId, string $firstName, string $lastName, ?int $exceptBirthdayId = null): void
+    {
+        if ($this->birthdays->nameExists($userId, $firstName, $lastName, $exceptBirthdayId)) {
+            throw $this->duplicateNameException();
+        }
+    }
+
+    private function rethrowWriteFailure(
+        DatabaseException $exception,
+        int $userId,
+        string $firstName,
+        string $lastName,
+        ?int $exceptBirthdayId = null,
+    ): never {
+        if ($this->birthdays->nameExists($userId, $firstName, $lastName, $exceptBirthdayId)) {
+            throw $this->duplicateNameException();
+        }
+
+        throw $exception;
+    }
+
+    private function duplicateNameException(): ApiException
+    {
+        return new ApiException(
+            'BIRTHDAY_NAME_IN_USE',
+            'Ein Geburtstag mit diesem Vor- und Nachnamen existiert bereits.',
+            409,
+        );
     }
 
     /**

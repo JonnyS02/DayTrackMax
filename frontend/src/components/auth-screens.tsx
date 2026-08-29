@@ -148,7 +148,7 @@ function Login({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
 
   return (
     <AuthLayout><AuthPanel><Title>Anmelden</Title><form onSubmit={submit} className={uiStyles.formStack}>
-      <Field id="login-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="du@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required />
+      <Field id="login-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="max.mustermann@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required />
       <PasswordField error={feedback.fields.password} />
       <div className="text-right text-sm"><button type="button" onClick={() => onNavigate('forgot-password')} className={uiStyles.textLink}>Passwort vergessen?</button></div>
       <FormError message={feedback.message} />
@@ -181,7 +181,7 @@ function Register({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
   return (
     <AuthLayout><AuthPanel><BackButton onClick={() => onNavigate('login')} /><Title>Registrieren</Title><form onSubmit={submit} className={uiStyles.formStack}>
       <Field id="register-name" name="name" label="Name" autoComplete="name" placeholder="Max Mustermann" icon={<UserRound size={17} />} error={feedback.fields.name} required />
-      <Field id="register-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="du@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required />
+      <Field id="register-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="max.mustermann@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required />
       <PasswordField autoComplete="new-password" error={feedback.fields.password} value={password} onChange={(event) => setPassword(event.target.value)} showRequirements />
       <PasswordField label="Passwort wiederholen" id="passwordConfirmation" autoComplete="new-password" error={feedback.fields.passwordConfirmation} />
       <label className="flex items-start gap-3 text-sm leading-6 text-stone-500"><input type="checkbox" required className={cn('mt-1 shrink-0', uiStyles.checkbox)} /><span><button type="button" className={uiStyles.textLink}>AGB</button> und Datenschutz akzeptieren</span></label>
@@ -198,7 +198,7 @@ function VerifyEmail({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | '
   const email = searchParams.get('email') ?? '';
   const processedToken = useRef<string | null>(null);
   const [state, setState] = useState<'ready' | 'checking' | 'success' | 'error'>(token ? 'checking' : 'ready');
-  const [message, setMessage] = useState(token ? 'Der Link wird geprüft.' : email ? `Link gesendet an ${email}` : 'Öffne den Link aus deiner E-Mail.');
+  const [message, setMessage] = useState(token ? 'Der Link wird geprüft.' : email ? `Link gesendet an ${email}` : 'Öffnen Sie den Link aus Ihrer E-Mail.');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -208,7 +208,7 @@ function VerifyEmail({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | '
     setMessage('Der Link wird geprüft.');
     route(screenRoutes['verify-email'], { replace: true });
     api.confirmEmailVerification(token)
-      .then(() => { setState('success'); setMessage('Deine E-Mail-Adresse wurde bestätigt.'); })
+      .then(() => { setState('success'); setMessage('Ihre E-Mail-Adresse wurde bestätigt.'); })
       .catch((requestError) => { setState('error'); setMessage(errorMessage(requestError)); });
   }, [route, token]);
 
@@ -225,7 +225,7 @@ function VerifyEmail({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | '
 
         if (verified) {
           setState('success');
-          setMessage('Deine E-Mail-Adresse wurde bestätigt.');
+          setMessage('Ihre E-Mail-Adresse wurde bestätigt.');
           return;
         }
       } catch {
@@ -280,7 +280,7 @@ function ForgotPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' 
     }
   };
 
-  return <AuthLayout><AuthPanel><BackButton onClick={() => onNavigate('login')} /><AuthIcon tone="peach"><KeyRound size={24} /></AuthIcon><Title>Passwort zurücksetzen</Title><form onSubmit={submit} className={uiStyles.formStack}><Field id="forgot-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="du@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required /><FormError message={feedback.message} /><Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? 'Sendet …' : 'Reset-Link senden'}</Button></form></AuthPanel></AuthLayout>;
+  return <AuthLayout><AuthPanel><BackButton onClick={() => onNavigate('login')} /><AuthIcon tone="peach"><KeyRound size={24} /></AuthIcon><Title>Passwort zurücksetzen</Title><form onSubmit={submit} className={uiStyles.formStack}><Field id="forgot-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="max.mustermann@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required /><FormError message={feedback.message} /><Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? 'Sendet …' : 'Reset-Link senden'}</Button></form></AuthPanel></AuthLayout>;
 }
 
 function Locked({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | 'showToast'>) {

@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `birthdays` (
     `notify_on_birthday` TINYINT(1) NOT NULL DEFAULT 1,
     `notify_days_before` SMALLINT UNSIGNED NULL,
     PRIMARY KEY (`id`),
-    KEY `birthdays_user_index` (`user_id`),
+    UNIQUE KEY `birthdays_user_name_unique` (`user_id`, `first_name`, `last_name`),
     CONSTRAINT `birthdays_user_foreign`
         FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

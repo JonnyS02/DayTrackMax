@@ -25,12 +25,13 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
 
   const redirectIfUnauthorized = useCallback((requestError: unknown) => {
     if (requestError instanceof ApiError && requestError.status === 401) {
+      if (requestError.code === 'REAUTHENTICATION_REQUIRED') showToast(requestError.message);
       onNavigate('login');
       return true;
     }
 
     return false;
-  }, [onNavigate]);
+  }, [onNavigate, showToast]);
 
   useEffect(() => {
     api.getProfile()
@@ -166,7 +167,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
                 <div className="flex items-start gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-peach-200 text-plum-800"><KeyRound size={18} /></span>
-                  <div><h2 className="font-black">Passwort</h2><p className="mt-1 text-sm text-stone-500">Du erhältst einen einmaligen Link per E-Mail.</p></div>
+                  <div><h2 className="font-black">Passwort</h2><p className="mt-1 text-sm text-stone-500">Sie erhalten einen einmaligen Link per E-Mail.</p></div>
                 </div>
                 <Button onClick={requestPasswordChange} disabled={isRequestingPasswordChange}>{isRequestingPasswordChange ? 'Sendet …' : 'Passwort ändern'}</Button>
               </div>
@@ -185,7 +186,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
         {isDeleteDialogOpen && (
           <Modal title="Konto löschen?" onClose={() => { if (!isDeleting) setIsDeleteDialogOpen(false); }} size="sm">
             <form onSubmit={deleteAccount} className={uiStyles.formStack}>
-              <p className="text-sm leading-6 text-stone-500">Dein Profil und alle gespeicherten Geburtstage werden dauerhaft gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
+              <p className="text-sm leading-6 text-stone-500">Ihr Profil und alle gespeicherten Geburtstage werden dauerhaft gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
               <Field id="delete-account-password" name="password" label="Passwort zur Bestätigung" type="password" autoComplete="current-password" error={deleteFeedback.fields.password} autoFocus required />
               <FormError message={deleteFeedback.message} />
               <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">

@@ -46,6 +46,7 @@ class Services extends BaseService
             new AuthTokenModel(),
             static::mailService(),
             static::session(),
+            static::throttler(),
             db_connect(),
             config(DayTrack::class),
         );

@@ -106,6 +106,7 @@ export function Dashboard({ onNavigate, showToast }: DashboardProps) {
   };
 
   const featuredDays = birthdays.featured[0]?.daysUntil;
+  const isBirthdayToday = featuredDays === 0;
   const featuredTiming = featuredDays === 0 ? 'heute' : featuredDays === 1 ? 'morgen' : `in ${featuredDays} Tagen`;
 
   return (
@@ -120,14 +121,22 @@ export function Dashboard({ onNavigate, showToast }: DashboardProps) {
         <PageHeading title="Geburtstage" action={<Button onClick={() => openBirthdayForm(null)}><Plus size={17} /> <span className="hidden sm:inline">Hinzufügen</span></Button>} />
 
         {birthdays.featured.length > 0 && (
-          <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn('relative mb-4 overflow-hidden rounded-3xl px-3 py-2.5 text-white shadow-xl shadow-coral-500/15 sm:mb-6 sm:rounded-[2rem] sm:px-4 lg:px-6 lg:py-3', gradientStyles.featured)}>
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              'relative mb-4 overflow-hidden rounded-3xl px-3 py-2.5 text-white shadow-xl sm:mb-6 sm:rounded-[2rem] sm:px-4 lg:px-6 lg:py-3',
+              isBirthdayToday ? 'shadow-coral-500/15' : 'shadow-ocean-500/15',
+              isBirthdayToday ? gradientStyles.featuredToday : gradientStyles.featuredUpcoming,
+            )}
+          >
             <div className="pointer-events-none absolute -bottom-12 right-8 h-28 w-72 rounded-[50%] border border-white/20" />
             <div className="pointer-events-none absolute -bottom-16 right-2 h-28 w-80 rounded-[50%] border border-white/15" />
             <div className="relative divide-y divide-white/15">
               {birthdays.featured.map((birthday) => (
                 <button key={birthday.id} onClick={() => openBirthdayForm(birthday)} className="flex w-full items-center gap-2.5 py-2.5 text-left sm:gap-4 sm:py-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sand-50/15 text-sm font-black ring-1 ring-white/20 sm:h-12 sm:w-12 sm:text-base">{initials(birthday)}</span>
-                  <span className="min-w-0 flex-1 text-lg font-black tracking-tight sm:text-2xl">{fullName(birthday)} wird <span className="text-peach-200">{featuredTiming}</span> {birthday.nextAge}</span>
+                  <span className="min-w-0 flex-1 text-lg font-black tracking-tight sm:text-2xl">{fullName(birthday)} wird <span className={isBirthdayToday ? 'text-peach-200' : 'text-ocean-100'}>{featuredTiming}</span> {birthday.nextAge}</span>
                 </button>
               ))}
             </div>

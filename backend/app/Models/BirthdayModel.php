@@ -24,6 +24,20 @@ class BirthdayModel extends Model
         return $this->where('id', $birthdayId)->where('user_id', $userId)->first();
     }
 
+    public function nameExists(int $userId, string $firstName, string $lastName, ?int $exceptBirthdayId = null): bool
+    {
+        $builder = $this
+            ->where('user_id', $userId)
+            ->where('first_name', $firstName)
+            ->where('last_name', $lastName);
+
+        if ($exceptBirthdayId !== null) {
+            $builder->where('id !=', $exceptBirthdayId);
+        }
+
+        return $builder->first() !== null;
+    }
+
     /**
      * @return list<array<string, mixed>>
      */

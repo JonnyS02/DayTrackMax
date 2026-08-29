@@ -66,7 +66,7 @@ abstract class ApiController extends BaseController
             ->setJSON([
                 'error' => [
                     'code' => 'RATE_LIMITED',
-                    'message' => 'Zu viele Anfragen. Bitte versuche es später erneut.',
+                    'message' => 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.',
                 ],
             ]);
     }
@@ -84,7 +84,7 @@ abstract class ApiController extends BaseController
         return $this->response->setStatusCode(422)->setJSON([
             'error' => [
                 'code' => 'VALIDATION_FAILED',
-                'message' => 'Bitte prüfe deine Eingaben.',
+                'message' => 'Bitte prüfen Sie Ihre Eingaben.',
                 'fields' => $fields,
             ],
         ]);

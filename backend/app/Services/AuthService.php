@@ -7,6 +7,7 @@ use App\Models\AuthTokenModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Session\Session;
+use CodeIgniter\Throttle\ThrottlerInterface;
 use Config\DayTrack;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -18,12 +19,15 @@ class AuthService
     private const VERIFY_EMAIL_CHANGE = 'verify_email_change';
     private const RESET_PASSWORD = 'reset_password';
     private const VERIFICATION_USER_ID = 'verification_user_id';
+    private const REAUTHENTICATION_FAILURE_LIMIT = 5;
+    private const REAUTHENTICATION_WINDOW_SECONDS = 900;
 
     public function __construct(
         private readonly UserModel $users,
         private readonly AuthTokenModel $tokens,
         private readonly MailService $mail,
         private readonly Session $session,
+        private readonly ThrottlerInterface $throttler,
         private readonly BaseConnection $database,
         private readonly DayTrack $config,
     ) {
@@ -41,8 +45,8 @@ class AuthService
     {
         $email = $this->normalizeEmail($email);
         if ($this->users->emailExists($email)) {
-            throw new ApiException('EMAIL_IN_USE', 'Für diese E-Mail-Adresse besteht bereits ein Konto.', 409, [
-                'email' => 'Für diese E-Mail-Adresse besteht bereits ein Konto.',
+            throw new ApiException('EMAIL_IN_USE', 'Für diese E-Mail-Adresse existiert bereits ein Konto.', 409, [
+                'email' => 'Für diese E-Mail-Adresse existiert bereits ein Konto.',
             ]);
         }
 
@@ -84,7 +88,7 @@ class AuthService
                         throw new ApiException('ACCOUNT_LOCKED', 'Das Konto wurde gesperrt. Ein Reset-Link wurde per E-Mail versendet.', 423);
                     }
 
-                    throw new ApiException('ACCOUNT_LOCKED', 'Das Konto ist gesperrt. Nutze den Reset-Link oder fordere einen neuen an.', 423);
+                    throw new ApiException('ACCOUNT_LOCKED', 'Das Konto ist gesperrt. Nutzen Sie den Reset-Link oder fordern Sie einen neuen an.', 423);
                 }
             }
 
@@ -92,15 +96,16 @@ class AuthService
         }
 
         if ((int) $user['failed_login_attempts'] >= 3) {
-            throw new ApiException('ACCOUNT_LOCKED', 'Das Konto ist gesperrt. Setze dein Passwort über den Link in der E-Mail zurück.', 423);
+            throw new ApiException('ACCOUNT_LOCKED', 'Das Konto ist gesperrt. Setzen Sie Ihr Passwort über den Link in der E-Mail zurück.', 423);
         }
 
         if (! (bool) $user['email_verified']) {
             $this->session->set(self::VERIFICATION_USER_ID, (int) $user['id']);
-            throw new ApiException('EMAIL_NOT_VERIFIED', 'Bitte bestätige zuerst deine E-Mail-Adresse.', 403);
+            throw new ApiException('EMAIL_NOT_VERIFIED', 'Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.', 403);
         }
 
         $userId = (int) $user['id'];
+        $this->throttler->remove($this->reauthenticationThrottleKey($userId));
         $updates = ['failed_login_attempts' => 0];
         $passwordHash = $user['password_hash'];
         if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
@@ -215,6 +220,8 @@ class AuthService
             $this->database->transRollback();
             throw $exception;
         }
+
+        $this->throttler->remove($this->reauthenticationThrottleKey($userId));
     }
 
     /**
@@ -253,14 +260,7 @@ class AuthService
             return $this->profile($userId);
         }
 
-        if (! password_verify($currentPassword, $user['password_hash'])) {
-            throw new ApiException(
-                'INVALID_PASSWORD',
-                'Das Passwort ist nicht korrekt.',
-                422,
-                ['currentPassword' => 'Das Passwort ist nicht korrekt.'],
-            );
-        }
+        $this->verifyCurrentPassword($user, $currentPassword, 'currentPassword');
 
         if ($this->users->emailExists($email, $userId)) {
             throw new ApiException('EMAIL_IN_USE', 'Diese E-Mail-Adresse wird bereits verwendet.', 409, [
@@ -289,12 +289,54 @@ class AuthService
     public function deleteAccount(int $userId, string $password): void
     {
         $user = $this->requireUser($userId);
-        if (! password_verify($password, $user['password_hash'])) {
-            throw new ApiException('INVALID_PASSWORD', 'Das Passwort ist nicht korrekt.', 422, ['password' => 'Das Passwort ist nicht korrekt.']);
-        }
+        $this->verifyCurrentPassword($user, $password, 'password');
 
         $this->users->delete($userId);
         $this->session->destroy();
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function verifyCurrentPassword(array $user, string $password, string $field): void
+    {
+        $userId = (int) $user['id'];
+        $throttleKey = $this->reauthenticationThrottleKey($userId);
+
+        if (password_verify($password, $user['password_hash'])) {
+            $this->throttler->remove($throttleKey);
+            return;
+        }
+
+        // Four failures consume the bucket; the fifth ends only this session.
+        if (! $this->throttler->check(
+            $throttleKey,
+            self::REAUTHENTICATION_FAILURE_LIMIT - 1,
+            self::REAUTHENTICATION_WINDOW_SECONDS,
+        )) {
+            log_message('warning', 'Sitzung nach wiederholt fehlgeschlagener Reauthentifizierung beendet: Benutzer {userId}', [
+                'userId' => $userId,
+            ]);
+            $this->session->destroy();
+
+            throw new ApiException(
+                'REAUTHENTICATION_REQUIRED',
+                'Zu viele falsche Passwortversuche. Bitte melden Sie sich erneut an.',
+                401,
+            );
+        }
+
+        throw new ApiException(
+            'INVALID_PASSWORD',
+            'Das Passwort ist nicht korrekt.',
+            422,
+            [$field => 'Das Passwort ist nicht korrekt.'],
+        );
+    }
+
+    private function reauthenticationThrottleKey(int $userId): string
+    {
+        return 'daytrack-reauth-' . $userId;
     }
 
     private function sendVerification(array $user, string $purpose, string $recipient): void
@@ -309,12 +351,12 @@ class AuthService
                 $url = $this->frontendURL('/verify-email?token=' . rawurlencode($token));
                 $this->mail->send('verify-email', $recipient, $emailChange ? 'E-Mail-Änderung bestätigen' : 'E-Mail bestätigen', [
                     'preview_text' => $emailChange
-                        ? 'Bestätige deine neue E-Mail-Adresse für DayTrack Max.'
-                        : 'Bestätige deine E-Mail-Adresse für DayTrack Max.',
+                        ? 'Bestätigen Sie Ihre neue E-Mail-Adresse für DayTrack Max.'
+                        : 'Bestätigen Sie Ihre E-Mail-Adresse für DayTrack Max.',
                     'user_name' => $user['name'],
                     'verification_message' => $emailChange
-                        ? 'Bestätige deine neue E-Mail-Adresse, um die Änderung abzuschließen.'
-                        : 'Bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren.',
+                        ? 'Bestätigen Sie Ihre neue E-Mail-Adresse, um die Änderung abzuschließen.'
+                        : 'Bestätigen Sie Ihre E-Mail-Adresse, um Ihr Konto zu aktivieren.',
                     'verification_url' => $url,
                     'expires_in' => $this->durationLabel($this->config->verificationTokenMinutes),
                 ]);
@@ -334,14 +376,14 @@ class AuthService
                 $url = $this->frontendURL('/reset-password?token=' . rawurlencode($token));
                 $this->mail->send('reset-password', $user['email'], 'Passwort zurücksetzen', [
                     'preview_text' => $accountLocked
-                        ? 'Entsperre dein DayTrack-Max-Konto mit einem neuen Passwort.'
-                        : 'Lege ein neues Passwort für DayTrack Max fest.',
+                        ? 'Entsperren Sie Ihr DayTrack-Max-Konto mit einem neuen Passwort.'
+                        : 'Legen Sie ein neues Passwort für DayTrack Max fest.',
                     'user_name' => $user['name'],
                     'reset_message' => $accountLocked
-                        ? 'Dein Konto wurde nach drei fehlgeschlagenen Anmeldeversuchen gesperrt. Lege ein neues Passwort fest, um es wieder zu verwenden.'
-                        : 'Über diesen Link kannst du ein neues Passwort festlegen.',
+                        ? 'Ihr Konto wurde nach drei fehlgeschlagenen Anmeldeversuchen gesperrt. Legen Sie ein neues Passwort fest, um es wieder zu verwenden.'
+                        : 'Über diesen Link können Sie ein neues Passwort festlegen.',
                     'reset_note' => 'Der Link ist ' . $expiresIn . ' gültig.'
-                        . ($accountLocked ? '' : ' Falls du das nicht warst, kannst du diese E-Mail ignorieren.'),
+                        . ($accountLocked ? '' : ' Falls Sie das nicht waren, können Sie diese E-Mail ignorieren.'),
                     'reset_url' => $url,
                 ]);
             },

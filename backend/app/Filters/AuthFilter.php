@@ -30,7 +30,7 @@ class AuthFilter implements FilterInterface
 
         return service('response')
             ->setStatusCode(401)
-            ->setJSON(['error' => ['code' => 'UNAUTHENTICATED', 'message' => 'Bitte melde dich an.']]);
+            ->setJSON(['error' => ['code' => 'UNAUTHENTICATED', 'message' => 'Bitte melden Sie sich an.']]);
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): void

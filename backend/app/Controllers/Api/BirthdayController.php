@@ -65,7 +65,7 @@ class BirthdayController extends ApiController
 
         $errors = [];
         if (! array_key_exists('notifyOnBirthday', $input) || ! is_bool($input['notifyOnBirthday'])) {
-            $errors['notifyOnBirthday'] = 'Bitte wähle eine gültige Benachrichtigungseinstellung.';
+            $errors['notifyOnBirthday'] = 'Bitte wählen Sie eine gültige Benachrichtigungseinstellung.';
         }
 
         $daysBefore = $input['notifyDaysBefore'] ?? null;
