@@ -24,7 +24,8 @@ export type BirthdayInput = Pick<Birthday, 'firstName' | 'lastName' | 'birthDate
 
 export type BirthdayList = {
   items: Birthday[];
-  featured: Birthday[];
+  today: Birthday[];
+  upcoming: Birthday[];
   meta: {
     page: number;
     perPage: number;

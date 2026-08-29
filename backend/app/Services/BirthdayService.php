@@ -63,7 +63,7 @@ class BirthdayService
     }
 
     /**
-     * @return array{items: list<array<string, mixed>>, featured: list<array<string, mixed>>, meta: array{page: int, perPage: int, total: int, pageCount: int}}
+     * @return array{items: list<array<string, mixed>>, today: list<array<string, mixed>>, upcoming: list<array<string, mixed>>, meta: array{page: int, perPage: int, total: int, pageCount: int}}
      */
     public function listForUser(int $userId, string $search, int $page, int $perPage): array
     {
@@ -71,11 +71,7 @@ class BirthdayService
         $all = array_map(fn (array $birthday): array => $this->present($birthday, $today), $this->birthdays->findAllForUser($userId));
         usort($all, static fn (array $left, array $right): int => [$left['daysUntil'], $left['lastName'], $left['firstName']] <=> [$right['daysUntil'], $right['lastName'], $right['firstName']]);
 
-        $featured = [];
-        if ($all !== []) {
-            $firstDays = $all[0]['daysUntil'];
-            $featured = array_values(array_filter($all, static fn (array $birthday): bool => $birthday['daysUntil'] === $firstDays));
-        }
+        $highlights = $this->highlights($all);
 
         $search = mb_strtolower(trim($search));
         $filtered = $search === ''
@@ -90,13 +86,54 @@ class BirthdayService
 
         return [
             'items' => array_slice($filtered, ($page - 1) * $perPage, $perPage),
-            'featured' => $featured,
+            'today' => $highlights['today'],
+            'upcoming' => $highlights['upcoming'],
             'meta' => [
                 'page' => $page,
                 'perPage' => $perPage,
                 'total' => $total,
                 'pageCount' => $pageCount,
             ],
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $birthdays Sorted by days until the birthday.
+     * @return array{today: list<array<string, mixed>>, upcoming: list<array<string, mixed>>}
+     */
+    private function highlights(array $birthdays): array
+    {
+        $today = [];
+        $notifiableUpcoming = [];
+
+        foreach ($birthdays as $birthday) {
+            if ($birthday['daysUntil'] === 0) {
+                $today[] = $birthday;
+                continue;
+            }
+
+            if ($birthday['notifyOnBirthday'] || $birthday['notifyDaysBefore'] !== null) {
+                $notifiableUpcoming[] = $birthday;
+            }
+        }
+
+        if ($notifiableUpcoming === []) {
+            return ['today' => $today, 'upcoming' => []];
+        }
+
+        $horizon = $notifiableUpcoming[0]['daysUntil'];
+        foreach ($notifiableUpcoming as $birthday) {
+            if ($birthday['notifyDaysBefore'] !== null && $birthday['daysUntil'] <= $birthday['notifyDaysBefore']) {
+                $horizon = max($horizon, $birthday['daysUntil']);
+            }
+        }
+
+        return [
+            'today' => $today,
+            'upcoming' => array_values(array_filter(
+                $notifiableUpcoming,
+                static fn (array $birthday): bool => $birthday['daysUntil'] <= $horizon,
+            )),
         ];
     }
 

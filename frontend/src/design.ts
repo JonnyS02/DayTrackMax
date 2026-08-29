@@ -13,7 +13,7 @@ export const gradientStyles = {
   brand: 'bg-[linear-gradient(145deg,var(--color-plum-700)_0%,var(--color-coral-600)_58%,var(--color-peach-400)_100%)]',
   auth: 'bg-[radial-gradient(circle_at_60%_18%,var(--color-peach-200)_0%,transparent_27%),linear-gradient(150deg,var(--color-plum-800)_5%,var(--color-rose-500)_45%,var(--color-coral-500)_70%,var(--color-peach-400)_100%)]',
   featuredToday: 'bg-[radial-gradient(circle_at_82%_-15%,var(--color-peach-200)_0%,transparent_31%),linear-gradient(115deg,var(--color-plum-700)_0%,var(--color-coral-600)_52%,var(--color-peach-400)_100%)]',
-  featuredUpcoming: 'bg-[linear-gradient(115deg,var(--color-plum-800)_0%,var(--color-ocean-500)_58%,var(--color-plum-700)_118%)]',
+  featuredUpcoming: 'bg-[linear-gradient(115deg,var(--color-plum-800)_0%,var(--color-ocean-600)_58%,var(--color-plum-700)_118%)]',
 } as const;
 
 export const birthdayColorClasses = [
