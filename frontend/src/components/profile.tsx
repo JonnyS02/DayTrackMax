@@ -109,6 +109,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
       await api.deleteAccount(String(password ?? ''));
       setIsDeleteDialogOpen(false);
       onNavigate('login');
+      showToast('Konto erfolgreich gelöscht');
     } catch (requestError) {
       if (!redirectIfUnauthorized(requestError)) {
         setDeleteFeedback(formErrors(requestError, ['password']));
@@ -150,6 +151,21 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
               <form onSubmit={submit} className={uiStyles.formStack}>
                 <Field id="profile-name" name="name" label="Name" value={name} onChange={(event) => setName(event.target.value)} error={profileFeedback.fields.name} required />
                 <Field id="profile-email" name="email" label="E-Mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} icon={<Mail size={17} />} error={profileFeedback.fields.email} required />
+                {pendingEmail && (
+                  <div role="status" className="rounded-2xl border border-ocean-500/15 bg-ocean-100/70 p-3.5 sm:p-4">
+                    <p className="text-sm font-medium leading-6 text-ink">Bis Sie die neue Adresse über den zugesandten Link bestätigen, bleibt die bisherige Adresse für die Anmeldung aktiv.</p>
+                    <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <div className="rounded-xl border border-ocean-500/10 bg-white/60 px-3 py-2.5">
+                        <dt className="text-xs font-bold text-stone-500">Aktiv für die Anmeldung</dt>
+                        <dd className="mt-0.5 break-all font-semibold text-ink">{activeEmail}</dd>
+                      </div>
+                      <div className="rounded-xl border border-ocean-500/10 bg-white/60 px-3 py-2.5">
+                        <dt className="text-xs font-bold text-stone-500">Neue E-Mail</dt>
+                        <dd className="mt-0.5 break-all font-semibold text-ink">{pendingEmail}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
                 {requiresPassword && <Field id="profile-current-password" name="currentPassword" label="Aktuelles Passwort" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} icon={<KeyRound size={17} />} error={profileFeedback.fields.currentPassword} required />}
                 <FormError message={profileFeedback.message} />
                 <div className="flex flex-col gap-3 sm:flex-row">
