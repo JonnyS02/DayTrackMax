@@ -19,6 +19,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function (R
         $routes->post('auth/logout', 'AuthController::logout');
         $routes->get('profile', 'ProfileController::show');
         $routes->patch('profile', 'ProfileController::update');
+        $routes->delete('profile/email-change', 'ProfileController::cancelEmailChange');
         $routes->post('profile/password-change/request', 'ProfileController::requestPasswordChange');
         $routes->delete('profile', 'ProfileController::delete');
         $routes->get('birthdays', 'BirthdayController::index');

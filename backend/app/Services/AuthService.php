@@ -286,6 +286,24 @@ class AuthService
         $this->sendReset($this->requireUser($userId));
     }
 
+    /**
+     * @return array{id: int, name: string, email: string, pendingEmail: ?string}
+     */
+    public function cancelEmailChange(int $userId): array
+    {
+        $this->database->transBegin();
+        try {
+            $this->users->update($userId, ['pending_email' => null]);
+            $this->tokens->deleteForUserAndPurpose($userId, self::VERIFY_EMAIL_CHANGE);
+            $this->database->transCommit();
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+            throw $exception;
+        }
+
+        return $this->profile($userId);
+    }
+
     public function deleteAccount(int $userId, string $password): void
     {
         $user = $this->requireUser($userId);

@@ -1,9 +1,9 @@
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, KeyRound, LogOut, Mail, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, KeyRound, LogOut, Mail, Save, Trash2, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { api, ApiError, errorMessage, formErrors } from '../api';
 import { uiStyles } from '../design';
-import type { Screen } from '../types';
+import type { Screen, User } from '../types';
 import { cn } from '../utils';
 import { AppHeader, AppShell, Button, Field, Footer, FormError, HeaderAction, Modal, PageContainer, PageHeading, Surface } from './ui';
 
@@ -18,10 +18,18 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
   const [deleteFeedback, setDeleteFeedback] = useState({ message: '', fields: {} as Record<string, string> });
   const [isSaving, setIsSaving] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [isCancellingEmailChange, setIsCancellingEmailChange] = useState(false);
   const [isRequestingPasswordChange, setIsRequestingPasswordChange] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const applyUser = useCallback((user: User) => {
+    setName(user.name);
+    setEmail(user.pendingEmail ?? user.email);
+    setActiveEmail(user.email);
+    setPendingEmail(user.pendingEmail);
+  }, []);
 
   const redirectIfUnauthorized = useCallback((requestError: unknown) => {
     if (requestError instanceof ApiError && requestError.status === 401) {
@@ -35,18 +43,13 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
 
   useEffect(() => {
     api.getProfile()
-      .then((user) => {
-        setName(user.name);
-        setEmail(user.pendingEmail ?? user.email);
-        setActiveEmail(user.email);
-        setPendingEmail(user.pendingEmail);
-      })
+      .then(applyUser)
       .catch((requestError) => {
         if (!redirectIfUnauthorized(requestError)) {
           setProfileFeedback({ message: errorMessage(requestError), fields: {} });
         }
       });
-  }, [redirectIfUnauthorized]);
+  }, [applyUser, redirectIfUnauthorized]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -55,10 +58,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
     setIsSaving(true);
     try {
       const user = await api.updateProfile(name, email, currentPassword);
-      setName(user.name);
-      setEmail(user.pendingEmail ?? user.email);
-      setActiveEmail(user.email);
-      setPendingEmail(user.pendingEmail);
+      applyUser(user);
       setCurrentPassword('');
       showToast(emailChangeRequested ? 'Bestätigungslink gesendet' : 'Profil gespeichert');
     } catch (requestError) {
@@ -67,6 +67,22 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const cancelEmailChange = async () => {
+    setProfileFeedback({ message: '', fields: {} });
+    setIsCancellingEmailChange(true);
+    try {
+      applyUser(await api.cancelEmailChange());
+      setCurrentPassword('');
+      showToast('E-Mail-Änderung abgebrochen');
+    } catch (requestError) {
+      if (!redirectIfUnauthorized(requestError)) {
+        setProfileFeedback({ message: errorMessage(requestError), fields: {} });
+      }
+    } finally {
+      setIsCancellingEmailChange(false);
     }
   };
 
@@ -164,14 +180,17 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
                         <dd className="mt-0.5 break-all font-semibold text-ink">{pendingEmail}</dd>
                       </div>
                     </dl>
+                    <Button type="button" variant="secondary" className="mt-3 w-full sm:w-auto" onClick={cancelEmailChange} disabled={isCancellingEmailChange || isSaving || isResendingVerification}>
+                      <X size={16} /> {isCancellingEmailChange ? 'Bricht ab …' : 'Änderung abbrechen'}
+                    </Button>
                   </div>
                 )}
                 {requiresPassword && <Field id="profile-current-password" name="currentPassword" label="Aktuelles Passwort" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} icon={<KeyRound size={17} />} error={profileFeedback.fields.currentPassword} required />}
                 <FormError message={profileFeedback.message} />
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button type="submit" disabled={isSaving || isResendingVerification}><Save size={17} /> {isSaving ? 'Speichert …' : 'Speichern'}</Button>
+                  <Button type="submit" disabled={isSaving || isResendingVerification || isCancellingEmailChange}><Save size={17} /> {isSaving ? 'Speichert …' : 'Speichern'}</Button>
                   {pendingEmail && normalizedEmail === pendingEmail.toLowerCase() && (
-                    <Button type="button" variant="secondary" onClick={resendEmailVerification} disabled={isResendingVerification || isSaving}>
+                    <Button type="button" variant="secondary" onClick={resendEmailVerification} disabled={isResendingVerification || isSaving || isCancellingEmailChange}>
                       <Mail size={17} /> {isResendingVerification ? 'Sendet …' : 'Link erneut senden'}
                     </Button>
                   )}

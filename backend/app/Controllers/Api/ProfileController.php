@@ -40,6 +40,13 @@ class ProfileController extends ApiController
         });
     }
 
+    public function cancelEmailChange(): ResponseInterface
+    {
+        return $this->action(fn (): ResponseInterface => $this->data(
+            service('authService')->cancelEmailChange($this->userId()),
+        ));
+    }
+
     public function delete(): ResponseInterface
     {
         $input = $this->input();

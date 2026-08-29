@@ -127,6 +127,8 @@ export const api = {
   getProfile: () => request<User>('/profile'),
   updateProfile: (name: string, email: string, currentPassword: string) =>
     request<User>('/profile', { method: 'PATCH', body: json({ name, email, currentPassword }) }),
+  cancelEmailChange: () =>
+    request<User>('/profile/email-change', { method: 'DELETE' }),
   requestPasswordChange: () =>
     request<{ message: string }>('/profile/password-change/request', { method: 'POST' }),
   deleteAccount: async (password: string) => {
