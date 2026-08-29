@@ -76,6 +76,11 @@ abstract class ApiController extends BaseController
         return $this->response->setStatusCode($status)->setJSON(['data' => $data]);
     }
 
+    protected function emptyResponse(int $status = 204): ResponseInterface
+    {
+        return $this->response->setStatusCode($status);
+    }
+
     /**
      * @param array<string, string> $fields
      */

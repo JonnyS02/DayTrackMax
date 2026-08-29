@@ -3,8 +3,6 @@
 use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
-$routes->get('/', static fn () => service('response')->setJSON(['name' => 'DayTrack Max API']));
-
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function (RouteCollection $routes): void {
     $routes->get('auth/csrf', 'AuthController::csrf');
     $routes->post('auth/register', 'AuthController::register');

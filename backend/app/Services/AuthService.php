@@ -38,10 +38,7 @@ class AuthService
         $this->tokens->deleteExpired();
     }
 
-    /**
-     * @return array{id: int, name: string, email: string, pendingEmail: ?string}
-     */
-    public function register(string $name, string $email, string $password): array
+    public function register(string $name, string $email, string $password): void
     {
         $email = $this->normalizeEmail($email);
         if ($this->users->emailExists($email)) {
@@ -50,32 +47,21 @@ class AuthService
             ]);
         }
 
-        $this->database->transBegin();
-        try {
-            $userId = (int) $this->users->insert([
-                'name' => trim($name),
-                'email' => $email,
-                'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-                'email_verified' => false,
-                'failed_login_attempts' => 0,
-            ], true);
-            $this->database->transCommit();
-        } catch (Throwable $exception) {
-            $this->database->transRollback();
-            throw $exception;
-        }
+        $name = trim($name);
+        $userId = (int) $this->users->insert([
+            'name' => $name,
+            'email' => $email,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'email_verified' => false,
+            'failed_login_attempts' => 0,
+        ], true);
 
-        $user = $this->requireUser($userId);
+        $user = ['id' => $userId, 'name' => $name];
         $this->sendVerification($user, self::VERIFY_EMAIL, $email);
         $this->session->set(self::VERIFICATION_USER_ID, $userId);
-
-        return $this->profile($userId);
     }
 
-    /**
-     * @return array{id: int, name: string, email: string, pendingEmail: ?string}
-     */
-    public function login(string $email, string $password): array
+    public function login(string $email, string $password): void
     {
         $user = $this->users->findByEmail($this->normalizeEmail($email));
 
@@ -120,8 +106,6 @@ class AuthService
             'password_fingerprint' => hash('sha256', $passwordHash),
         ]);
         $this->session->remove(self::VERIFICATION_USER_ID);
-
-        return $this->profile($userId);
     }
 
     public function emailVerificationStatus(): bool

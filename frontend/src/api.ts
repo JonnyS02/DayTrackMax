@@ -1,4 +1,4 @@
-import type { Birthday, BirthdayInput, BirthdayList, User } from './types';
+import type { BirthdayInput, BirthdayList, User } from './types';
 
 type ApiErrorBody = {
   code: string;
@@ -35,9 +35,9 @@ function isApiErrorBody(value: unknown): value is ApiErrorBody {
 }
 
 async function parseResponse<Data>(response: Response): Promise<Data> {
-  if (response.status === 204) return undefined as Data;
-
   const text = await response.text();
+  if (response.ok && text === '') return undefined as Data;
+
   let payload: ApiEnvelope<Data> | null = null;
 
   if (text && response.headers.get('content-type')?.includes('application/json')) {
@@ -104,9 +104,9 @@ const json = (data: unknown) => JSON.stringify(data);
 
 export const api = {
   register: (name: string, email: string, password: string, passwordConfirmation: string) =>
-    request<User>('/auth/register', { method: 'POST', body: json({ name, email, password, passwordConfirmation }) }),
+    request<void>('/auth/register', { method: 'POST', body: json({ name, email, password, passwordConfirmation }) }),
   login: (email: string, password: string) =>
-    request<User>('/auth/login', { method: 'POST', body: json({ email, password }) }),
+    request<void>('/auth/login', { method: 'POST', body: json({ email, password }) }),
   logout: async () => {
     try {
       await request<void>('/auth/logout', { method: 'POST' });
@@ -115,24 +115,24 @@ export const api = {
     }
   },
   requestEmailVerification: (email: string) =>
-    request<{ message: string }>('/auth/email-verification/request', { method: 'POST', body: json({ email }) }),
+    request<void>('/auth/email-verification/request', { method: 'POST', body: json({ email }) }),
   getEmailVerificationStatus: () =>
     request<{ verified: boolean }>('/auth/email-verification/status'),
   confirmEmailVerification: (token: string) =>
-    request<{ message: string }>('/auth/email-verification/confirm', { method: 'POST', body: json({ token }) }),
+    request<void>('/auth/email-verification/confirm', { method: 'POST', body: json({ token }) }),
   requestPasswordReset: (email: string) =>
-    request<{ message: string }>('/auth/password-reset/request', { method: 'POST', body: json({ email }) }),
+    request<void>('/auth/password-reset/request', { method: 'POST', body: json({ email }) }),
   validatePasswordResetToken: (token: string) =>
     request<void>('/auth/password-reset/validate', { method: 'POST', body: json({ token }) }),
   resetPassword: (token: string, password: string, passwordConfirmation: string) =>
-    request<{ message: string }>('/auth/password-reset/confirm', { method: 'POST', body: json({ token, password, passwordConfirmation }) }),
+    request<void>('/auth/password-reset/confirm', { method: 'POST', body: json({ token, password, passwordConfirmation }) }),
   getProfile: () => request<User>('/profile'),
   updateProfile: (name: string, email: string, currentPassword: string) =>
     request<User>('/profile', { method: 'PATCH', body: json({ name, email, currentPassword }) }),
   cancelEmailChange: () =>
     request<User>('/profile/email-change', { method: 'DELETE' }),
   requestPasswordChange: () =>
-    request<{ message: string }>('/profile/password-change/request', { method: 'POST' }),
+    request<void>('/profile/password-change/request', { method: 'POST' }),
   deleteAccount: async (password: string) => {
     await request<void>('/profile', { method: 'DELETE', body: json({ password }) });
     csrfToken = null;
@@ -142,9 +142,9 @@ export const api = {
     return request<BirthdayList>(`/birthdays?${query}`);
   },
   createBirthday: (birthday: BirthdayInput) =>
-    request<Birthday>('/birthdays', { method: 'POST', body: json(birthday) }),
+    request<void>('/birthdays', { method: 'POST', body: json(birthday) }),
   updateBirthday: (birthdayId: number, birthday: BirthdayInput) =>
-    request<Birthday>(`/birthdays/${birthdayId}`, { method: 'PATCH', body: json(birthday) }),
+    request<void>(`/birthdays/${birthdayId}`, { method: 'PATCH', body: json(birthday) }),
   deleteBirthday: (birthdayId: number) =>
     request<void>(`/birthdays/${birthdayId}`, { method: 'DELETE' }),
 };

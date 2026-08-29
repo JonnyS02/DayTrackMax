@@ -1,5 +1,4 @@
 export const uiStyles = {
-  checkbox: 'h-4 w-4 rounded border-sand-200 accent-coral-500',
   contentPadding: 'p-4 sm:p-5 lg:p-8',
   focusRing: 'outline-none transition focus:border-coral-300 focus:ring-4 focus:ring-coral-100',
   fieldLabel: 'mb-2 block text-sm font-bold text-ink',

@@ -27,10 +27,10 @@ class BirthdayController extends ApiController
             return $failure;
         }
 
-        return $this->action(fn (): ResponseInterface => $this->data(
-            service('birthdayService')->create($this->userId(), $input),
-            201,
-        ));
+        return $this->action(function () use ($input): ResponseInterface {
+            service('birthdayService')->create($this->userId(), $input);
+            return $this->emptyResponse(201);
+        });
     }
 
     public function update(int $birthdayId): ResponseInterface
@@ -40,9 +40,10 @@ class BirthdayController extends ApiController
             return $failure;
         }
 
-        return $this->action(fn (): ResponseInterface => $this->data(
-            service('birthdayService')->update($this->userId(), $birthdayId, $input),
-        ));
+        return $this->action(function () use ($birthdayId, $input): ResponseInterface {
+            service('birthdayService')->update($this->userId(), $birthdayId, $input);
+            return $this->emptyResponse();
+        });
     }
 
     public function delete(int $birthdayId): ResponseInterface
@@ -50,7 +51,7 @@ class BirthdayController extends ApiController
         return $this->action(function () use ($birthdayId): ResponseInterface {
             service('birthdayService')->delete($this->userId(), $birthdayId);
 
-            return $this->response->setStatusCode(204);
+            return $this->emptyResponse();
         });
     }
 

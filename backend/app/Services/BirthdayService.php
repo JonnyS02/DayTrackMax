@@ -21,27 +21,23 @@ class BirthdayService
 
     /**
      * @param array<string, mixed> $input
-     * @return array<string, mixed>
      */
-    public function create(int $userId, array $input): array
+    public function create(int $userId, array $input): void
     {
         $data = $this->databaseData($input);
         $this->ensureUniqueName($userId, $data['first_name'], $data['last_name']);
 
         try {
-            $birthdayId = (int) $this->birthdays->insert($data + ['user_id' => $userId], true);
+            $this->birthdays->insert($data + ['user_id' => $userId]);
         } catch (DatabaseException $exception) {
             $this->rethrowWriteFailure($exception, $userId, $data['first_name'], $data['last_name']);
         }
-
-        return $this->present($this->requireBirthday($birthdayId, $userId));
     }
 
     /**
      * @param array<string, mixed> $input
-     * @return array<string, mixed>
      */
-    public function update(int $userId, int $birthdayId, array $input): array
+    public function update(int $userId, int $birthdayId, array $input): void
     {
         $this->requireBirthday($birthdayId, $userId);
         $data = $this->databaseData($input);
@@ -52,8 +48,6 @@ class BirthdayService
         } catch (DatabaseException $exception) {
             $this->rethrowWriteFailure($exception, $userId, $data['first_name'], $data['last_name'], $birthdayId);
         }
-
-        return $this->present($this->requireBirthday($birthdayId, $userId));
     }
 
     public function delete(int $userId, int $birthdayId): void
@@ -136,7 +130,7 @@ class BirthdayService
     /**
      * @return array<string, mixed>
      */
-    public function present(array $birthday, ?DateTimeImmutable $today = null): array
+    private function present(array $birthday, ?DateTimeImmutable $today = null): array
     {
         $today ??= $this->today();
         $birthDate = new DateTimeImmutable($birthday['birth_date'], $today->getTimezone());

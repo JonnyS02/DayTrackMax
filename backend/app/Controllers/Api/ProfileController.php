@@ -36,7 +36,7 @@ class ProfileController extends ApiController
 
         return $this->action(function (): ResponseInterface {
             service('authService')->requestPasswordChange($this->userId());
-            return $this->data(['message' => 'Verifizierungslink versendet.']);
+            return $this->emptyResponse();
         });
     }
 
@@ -56,7 +56,7 @@ class ProfileController extends ApiController
 
         return $this->action(function () use ($input): ResponseInterface {
             service('authService')->deleteAccount($this->userId(), $input['password']);
-            return $this->response->setStatusCode(204);
+            return $this->emptyResponse();
         });
     }
 }

@@ -210,7 +210,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
             </Surface>
 
             <Surface className={cn('flex flex-col gap-4 border-coral-300/70 bg-coral-100/50 sm:flex-row sm:items-center sm:justify-between', uiStyles.contentPadding)}>
-              <div><h2 className="font-black text-plum-800">Konto löschen</h2><p className="mt-1 text-sm text-coral-600">Alle Daten werden entfernt.</p></div>
+              <h2 className="font-black text-coral-600">Konto löschen</h2>
               <Button variant="danger" onClick={() => { setDeleteFeedback({ message: '', fields: {} }); setIsDeleteDialogOpen(true); }}><Trash2 size={17} /> Löschen</Button>
             </Surface>
           </div>
@@ -221,7 +221,7 @@ export function Profile({ onNavigate, showToast }: { onNavigate: (screen: Screen
         {isDeleteDialogOpen && (
           <Modal title="Konto löschen?" onClose={() => { if (!isDeleting) setIsDeleteDialogOpen(false); }} size="sm">
             <form onSubmit={deleteAccount} className={uiStyles.formStack}>
-              <p className="text-sm leading-6 text-stone-500">Ihr Profil und alle gespeicherten Geburtstage werden dauerhaft gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
+              <p className="text-sm font-medium leading-6 text-ink">Ihr Profil und alle gespeicherten Geburtstage werden dauerhaft gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
               <Field id="delete-account-password" name="password" label="Passwort zur Bestätigung" type="password" autoComplete="current-password" error={deleteFeedback.fields.password} autoFocus required />
               <FormError message={deleteFeedback.message} />
               <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">

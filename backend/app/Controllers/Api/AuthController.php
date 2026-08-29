@@ -22,10 +22,10 @@ class AuthController extends ApiController
             return $limited;
         }
 
-        return $this->action(fn (): ResponseInterface => $this->data(
-            service('authService')->register($input['name'], $input['email'], $input['password']),
-            201,
-        ));
+        return $this->action(function () use ($input): ResponseInterface {
+            service('authService')->register($input['name'], $input['email'], $input['password']);
+            return $this->emptyResponse(201);
+        });
     }
 
     public function login(): ResponseInterface
@@ -39,16 +39,17 @@ class AuthController extends ApiController
             return $limited;
         }
 
-        return $this->action(fn (): ResponseInterface => $this->data(
-            service('authService')->login($input['email'], $input['password']),
-        ));
+        return $this->action(function () use ($input): ResponseInterface {
+            service('authService')->login($input['email'], $input['password']);
+            return $this->emptyResponse();
+        });
     }
 
     public function logout(): ResponseInterface
     {
         return $this->action(function (): ResponseInterface {
             service('authService')->logout();
-            return $this->response->setStatusCode(204);
+            return $this->emptyResponse();
         });
     }
 
@@ -65,7 +66,7 @@ class AuthController extends ApiController
 
         return $this->action(function () use ($input): ResponseInterface {
             service('authService')->requestEmailVerification($input['email']);
-            return $this->data(['message' => 'Falls die Adresse bestätigt werden muss, wurde eine E-Mail versendet.']);
+            return $this->emptyResponse();
         });
     }
 
@@ -85,7 +86,7 @@ class AuthController extends ApiController
 
         return $this->action(function () use ($input): ResponseInterface {
             service('authService')->verifyEmail($input['token']);
-            return $this->data(['message' => 'E-Mail bestätigt.']);
+            return $this->emptyResponse();
         });
     }
 
@@ -102,7 +103,7 @@ class AuthController extends ApiController
 
         return $this->action(function () use ($input): ResponseInterface {
             service('authService')->requestPasswordReset($input['email']);
-            return $this->data(['message' => 'Falls ein Konto existiert, wurde ein Reset-Link versendet.']);
+            return $this->emptyResponse();
         });
     }
 
@@ -115,7 +116,7 @@ class AuthController extends ApiController
 
         return $this->action(function () use ($input): ResponseInterface {
             service('authService')->validatePasswordResetToken($input['token']);
-            return $this->response->setStatusCode(204);
+            return $this->emptyResponse();
         });
     }
 
@@ -128,7 +129,7 @@ class AuthController extends ApiController
 
         return $this->action(function () use ($input): ResponseInterface {
             service('authService')->resetPassword($input['token'], $input['password']);
-            return $this->data(['message' => 'Passwort geändert.']);
+            return $this->emptyResponse();
         });
     }
 
