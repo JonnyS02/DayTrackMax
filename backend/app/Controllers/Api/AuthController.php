@@ -106,6 +106,19 @@ class AuthController extends ApiController
         });
     }
 
+    public function validatePasswordReset(): ResponseInterface
+    {
+        $input = $this->trimInput($this->input(), 'token');
+        if (! $this->validateData($input, 'tokenRequest')) {
+            return $this->validationFailure($this->validator->getErrors());
+        }
+
+        return $this->action(function () use ($input): ResponseInterface {
+            service('authService')->validatePasswordResetToken($input['token']);
+            return $this->response->setStatusCode(204);
+        });
+    }
+
     public function confirmPasswordReset(): ResponseInterface
     {
         $input = $this->trimInput($this->input(), 'token');

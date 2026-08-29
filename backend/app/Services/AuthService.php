@@ -203,6 +203,11 @@ class AuthService
         }
     }
 
+    public function validatePasswordResetToken(string $token): void
+    {
+        $this->findToken($token, [self::RESET_PASSWORD]);
+    }
+
     public function resetPassword(string $token, string $password): void
     {
         $storedToken = $this->findToken($token, [self::RESET_PASSWORD]);

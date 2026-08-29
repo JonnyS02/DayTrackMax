@@ -13,6 +13,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function (R
     $routes->get('auth/email-verification/status', 'AuthController::emailVerificationStatus');
     $routes->post('auth/email-verification/confirm', 'AuthController::confirmEmailVerification');
     $routes->post('auth/password-reset/request', 'AuthController::requestPasswordReset');
+    $routes->post('auth/password-reset/validate', 'AuthController::validatePasswordReset');
     $routes->post('auth/password-reset/confirm', 'AuthController::confirmPasswordReset');
 
     $routes->group('', ['filter' => 'auth'], static function (RouteCollection $routes): void {

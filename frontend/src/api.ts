@@ -122,6 +122,8 @@ export const api = {
     request<{ message: string }>('/auth/email-verification/confirm', { method: 'POST', body: json({ token }) }),
   requestPasswordReset: (email: string) =>
     request<{ message: string }>('/auth/password-reset/request', { method: 'POST', body: json({ email }) }),
+  validatePasswordResetToken: (token: string) =>
+    request<void>('/auth/password-reset/validate', { method: 'POST', body: json({ token }) }),
   resetPassword: (token: string, password: string, passwordConfirmation: string) =>
     request<{ message: string }>('/auth/password-reset/confirm', { method: 'POST', body: json({ token, password, passwordConfirmation }) }),
   getProfile: () => request<User>('/profile'),

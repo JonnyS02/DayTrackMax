@@ -306,14 +306,23 @@ function ResetPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' |
   const [searchParams] = useSearchParams();
   const tokenParameter = searchParams.get('token') ?? '';
   const [token] = useState(tokenParameter);
+  const validationStarted = useRef(false);
+  const [state, setState] = useState<'checking' | 'ready' | 'error'>(token ? 'checking' : 'error');
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
   const [feedback, setFeedback] = useState({ message: token ? '' : 'Der Link ist ungültig oder unvollständig.', fields: {} as Record<string, string> });
 
   useEffect(() => {
-    if (!tokenParameter) return;
+    if (!token || validationStarted.current) return;
+    validationStarted.current = true;
     route(screenRoutes['reset-password'], { replace: true });
-  }, [route, tokenParameter]);
+    api.validatePasswordResetToken(token)
+      .then(() => setState('ready'))
+      .catch(() => {
+        setFeedback({ message: 'Der Link ist ungültig oder abgelaufen.', fields: {} });
+        setState('error');
+      });
+  }, [route, token]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -326,11 +335,24 @@ function ResetPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' |
       showToast('Passwort geändert');
       onNavigate('login');
     } catch (requestError) {
-      setFeedback(formErrors(requestError, ['password', 'passwordConfirmation']));
+      if (requestError instanceof ApiError && requestError.code === 'INVALID_TOKEN') {
+        setFeedback({ message: requestError.message, fields: {} });
+        setState('error');
+      } else {
+        setFeedback(formErrors(requestError, ['password', 'passwordConfirmation']));
+      }
     } finally {
       setBusy(false);
     }
   };
+
+  if (state === 'checking') {
+    return <AuthLayout><AuthPanel centered><AuthIcon tone="ocean" large centered><KeyRound size={29} /></AuthIcon><Title>Link wird geprüft</Title></AuthPanel></AuthLayout>;
+  }
+
+  if (state === 'error') {
+    return <AuthStatus icon={<ShieldAlert size={29} />} title="Link ungültig" primaryLabel="Neuen Link anfordern" onPrimary={() => onNavigate('forgot-password')}>{feedback.message}</AuthStatus>;
+  }
 
   return <AuthLayout><AuthPanel><AuthIcon tone="ocean"><KeyRound size={24} /></AuthIcon><Title>Neues Passwort</Title><form onSubmit={submit} className={uiStyles.formStack}><PasswordField label="Neues Passwort" autoComplete="new-password" error={feedback.fields.password} value={password} onChange={(event) => setPassword(event.target.value)} showRequirements /><PasswordField label="Passwort wiederholen" id="passwordConfirmation" autoComplete="new-password" error={feedback.fields.passwordConfirmation} /><FormError message={feedback.message} /><Button type="submit" size="large" className="w-full" disabled={busy || !token}>{busy ? 'Speichert …' : 'Speichern'}</Button></form></AuthPanel></AuthLayout>;
 }
