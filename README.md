@@ -1,5 +1,7 @@
 # DayTrack Max
 
+DayTrack Max is a compact birthday reminder application with a React frontend and a CodeIgniter 4 backend. Users can manage birthdays and individual email reminders, while the backend handles authentication, email verification, password recovery, and scheduled notifications.
+
 - `frontend/`: React, Tailwind, and the MJML sources
 - `backend/`: CodeIgniter 4 API and generated email views
 

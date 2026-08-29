@@ -121,18 +121,14 @@ class BirthdayService
             return ['today' => $today, 'upcoming' => []];
         }
 
-        $horizon = $notifiableUpcoming[0]['daysUntil'];
-        foreach ($notifiableUpcoming as $birthday) {
-            if ($birthday['notifyDaysBefore'] !== null && $birthday['daysUntil'] <= $birthday['notifyDaysBefore']) {
-                $horizon = max($horizon, $birthday['daysUntil']);
-            }
-        }
+        $nearestDays = $notifiableUpcoming[0]['daysUntil'];
 
         return [
             'today' => $today,
             'upcoming' => array_values(array_filter(
                 $notifiableUpcoming,
-                static fn (array $birthday): bool => $birthday['daysUntil'] <= $horizon,
+                static fn (array $birthday): bool => $birthday['daysUntil'] === $nearestDays
+                    || ($birthday['notifyDaysBefore'] !== null && $birthday['daysUntil'] <= $birthday['notifyDaysBefore']),
             )),
         ];
     }
