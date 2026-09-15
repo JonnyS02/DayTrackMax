@@ -9,31 +9,37 @@ const packageRoot = path.resolve(templatesDir, '..');
 const sourceDir = path.join(templatesDir, 'src');
 const outputDir = path.resolve(packageRoot, '../backend/app/Views/emails');
 const watchMode = process.argv.includes('--watch');
+const locales = ['de', 'en'];
 
 async function build() {
   await rm(outputDir, { recursive: true, force: true });
   await mkdir(outputDir, { recursive: true });
-  const entries = await readdir(sourceDir, { withFileTypes: true });
-  const templates = entries.filter((entry) => entry.isFile() && entry.name.endsWith('.mjml'));
+  for (const locale of locales) {
+    const localeSourceDir = path.join(sourceDir, locale);
+    const localeOutputDir = path.join(outputDir, locale);
+    const templates = (await readdir(localeSourceDir, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.mjml'));
+    await mkdir(localeOutputDir, { recursive: true });
 
-  for (const template of templates) {
-    const sourcePath = path.join(sourceDir, template.name);
-    const source = await readFile(sourcePath, 'utf8');
-    const result = await mjml2html(source, {
-      filePath: sourcePath,
-      ignoreIncludes: false,
-      includePath: sourceDir,
-      validationLevel: 'strict',
-    });
+    for (const template of templates) {
+      const sourcePath = path.join(localeSourceDir, template.name);
+      const source = await readFile(sourcePath, 'utf8');
+      const result = await mjml2html(source, {
+        filePath: sourcePath,
+        ignoreIncludes: false,
+        includePath: sourceDir,
+        validationLevel: 'strict',
+      });
 
-    if (result.errors.length) {
-      throw new Error(result.errors.map((error) => `${template.name}:${error.line} ${error.message}`).join('\n'));
+      if (result.errors.length) {
+        throw new Error(result.errors.map((error) => `${locale}/${template.name}:${error.line} ${error.message}`).join('\n'));
+      }
+
+      const outputName = template.name.replace(/\.mjml$/, '.html');
+      const html = `${result.html.replace(/[ \t]+$/gm, '').trimEnd()}\n`;
+      await writeFile(path.join(localeOutputDir, outputName), html, 'utf8');
+      console.log(`✓ ${locale}/${template.name} → backend/app/Views/emails/${locale}/${outputName}`);
     }
-
-    const outputName = template.name.replace(/\.mjml$/, '.html');
-    const html = `${result.html.replace(/[ \t]+$/gm, '').trimEnd()}\n`;
-    await writeFile(path.join(outputDir, outputName), html, 'utf8');
-    console.log(`✓ ${template.name} → backend/app/Views/emails/${outputName}`);
   }
 }
 

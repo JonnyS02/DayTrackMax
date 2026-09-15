@@ -30,7 +30,7 @@ class AuthFilter implements FilterInterface
 
         return service('response')
             ->setStatusCode(401)
-            ->setJSON(['error' => ['code' => 'UNAUTHENTICATED', 'message' => 'Bitte melden Sie sich an.']]);
+            ->setJSON(['error' => ['code' => 'UNAUTHENTICATED', 'message' => lang('DayTrack.api.unauthenticated')]]);
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): void

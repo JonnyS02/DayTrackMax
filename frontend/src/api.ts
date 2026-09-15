@@ -1,4 +1,7 @@
 import type { BirthdayInput, BirthdayList, User } from './types';
+import { getActiveLocale } from './i18n/locale';
+import type { Locale } from './i18n/locale';
+import { translations } from './i18n/translations';
 
 type ApiErrorBody = {
   code: string;
@@ -52,7 +55,7 @@ async function parseResponse<Data>(response: Response): Promise<Data> {
   if (!response.ok || payload === null || 'error' in payload) {
     const error = payload !== null && 'error' in payload && isApiErrorBody(payload.error)
       ? payload.error
-      : { code: 'REQUEST_FAILED', message: 'Die Anfrage ist fehlgeschlagen.' };
+      : { code: 'REQUEST_FAILED', message: translations[getActiveLocale()].common.requestFailed };
     if (response.status === 401) csrfToken = null;
     throw new ApiError(response.status, error.code, error.message, error.fields ?? {});
   }
@@ -65,7 +68,10 @@ async function getCsrfToken(): Promise<string> {
   if (csrfTokenRequest) return csrfTokenRequest;
 
   csrfTokenRequest = (async () => {
-    const response = await fetch(`${apiBaseURL}/auth/csrf`, { credentials: 'include' });
+    const response = await fetch(`${apiBaseURL}/auth/csrf`, {
+      credentials: 'include',
+      headers: { 'Accept-Language': getActiveLocale() },
+    });
     const data = await parseResponse<{ token: string }>(response);
     csrfToken = data.token;
     return csrfToken;
@@ -82,6 +88,7 @@ async function request<Data>(path: string, init: RequestInit = {}, retryCsrf = t
   const method = (init.method ?? 'GET').toUpperCase();
   const requiresCsrf = !['GET', 'HEAD', 'OPTIONS'].includes(method);
   const headers = new Headers(init.headers);
+  headers.set('Accept-Language', getActiveLocale());
   if (init.body) headers.set('Content-Type', 'application/json');
   if (requiresCsrf) headers.set('X-CSRF-TOKEN', await getCsrfToken());
 
@@ -103,8 +110,8 @@ async function request<Data>(path: string, init: RequestInit = {}, retryCsrf = t
 const json = (data: unknown) => JSON.stringify(data);
 
 export const api = {
-  register: (name: string, email: string, password: string, passwordConfirmation: string) =>
-    request<void>('/auth/register', { method: 'POST', body: json({ name, email, password, passwordConfirmation }) }),
+  register: (name: string, email: string, password: string, passwordConfirmation: string, locale: Locale) =>
+    request<void>('/auth/register', { method: 'POST', body: json({ name, email, password, passwordConfirmation, locale }) }),
   login: (email: string, password: string) =>
     request<void>('/auth/login', { method: 'POST', body: json({ email, password }) }),
   logout: async () => {
@@ -129,6 +136,8 @@ export const api = {
   getProfile: () => request<User>('/profile'),
   updateProfile: (name: string, email: string, currentPassword: string) =>
     request<User>('/profile', { method: 'PATCH', body: json({ name, email, currentPassword }) }),
+  updateLocale: (locale: Locale) =>
+    request<void>('/profile/locale', { method: 'PATCH', body: json({ locale }) }),
   cancelEmailChange: () =>
     request<User>('/profile/email-change', { method: 'DELETE' }),
   requestPasswordChange: () =>
@@ -150,7 +159,7 @@ export const api = {
 };
 
 export function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : 'Die Anfrage konnte nicht verarbeitet werden.';
+  return error instanceof ApiError ? error.message : translations[getActiveLocale()].common.requestCouldNotBeProcessed;
 }
 
 export function formErrors(error: unknown, visibleFields: readonly string[]): { message: string; fields: Record<string, string> } {

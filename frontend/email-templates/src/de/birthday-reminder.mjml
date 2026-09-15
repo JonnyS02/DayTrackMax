@@ -1,10 +1,10 @@
 <mjml lang="de">
   <mj-head>
-    <mj-include path="./partials/head.mjml" />
+    <mj-include path="../partials/head.mjml" />
   </mj-head>
   <mj-body background-color="#fffaf4" width="600px">
     <mj-wrapper padding="32px 16px">
-      <mj-include path="./partials/header.mjml" />
+      <mj-include path="../partials/header.mjml" />
       <mj-section background-color="#ffffff" border-radius="0 0 24px 24px" padding="36px 28px">
         <mj-column>
           <mj-text mj-class="title">{{headline}}</mj-text>
@@ -12,7 +12,7 @@
           <mj-button href="{{dashboard_url}}">Geburtstage öffnen</mj-button>
         </mj-column>
       </mj-section>
-      <mj-include path="./partials/footer.mjml" />
+      <mj-include path="../partials/footer-de.mjml" />
     </mj-wrapper>
   </mj-body>
 </mjml>

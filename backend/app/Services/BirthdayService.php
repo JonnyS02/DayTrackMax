@@ -161,6 +161,10 @@ class BirthdayService
         $failed = 0;
 
         foreach ($this->birthdays->findAllForReminders() as $birthday) {
+            if ($this->config->isDemoEmail($birthday['user_email'])) {
+                continue;
+            }
+
             $presented = $this->present($birthday, $today);
             $days = $presented['daysUntil'];
             $isDue = ($days === 0 && $presented['notifyOnBirthday'])
@@ -172,16 +176,26 @@ class BirthdayService
 
             $personName = trim($presented['firstName'] . ' ' . $presented['lastName']);
             $firstName = trim($presented['firstName']);
-            $timing = $days === 0 ? 'heute' : ($days === 1 ? 'morgen' : "in {$days} Tagen");
-            $ageLabel = $presented['nextAge'] === 1 ? '1 Jahr' : $presented['nextAge'] . ' Jahre';
-            $detailLine = "{$personName} wird {$timing} {$ageLabel} alt.";
+            $locale = $birthday['user_locale'];
+            $timing = lang(
+                $days === 0 ? 'DayTrack.email.birthday.today' : ($days === 1 ? 'DayTrack.email.birthday.tomorrow' : 'DayTrack.email.birthday.inDays'),
+                [$days],
+                $locale,
+            );
+            $ageLabel = lang(
+                $presented['nextAge'] === 1 ? 'DayTrack.email.birthday.ageOne' : 'DayTrack.email.birthday.ageMany',
+                [$presented['nextAge']],
+                $locale,
+            );
+            $subject = lang('DayTrack.email.birthday.subject', [$firstName, $timing], $locale);
+            $detailLine = lang('DayTrack.email.birthday.detail', [$personName, $timing, $ageLabel], $locale);
 
             try {
-                $this->mail->send('birthday-reminder', $birthday['user_email'], "{$firstName} hat {$timing} Geburtstag", [
+                $this->mail->send('birthday-reminder', $locale, $birthday['user_email'], $subject, [
                     'preview_text' => $detailLine,
-                    'headline' => "{$firstName} hat {$timing} Geburtstag",
+                    'headline' => $subject,
                     'detail_line' => $detailLine,
-                    'dashboard_url' => rtrim($this->config->frontendURL, '/') . '/',
+                    'dashboard_url' => rtrim($this->config->frontendURL, '/') . '/?lang=' . $locale,
                 ]);
                 $sent++;
             } catch (Throwable $exception) {
@@ -253,7 +267,7 @@ class BirthdayService
     {
         return new ApiException(
             'BIRTHDAY_NAME_IN_USE',
-            'Ein Geburtstag mit diesem Vor- und Nachnamen existiert bereits.',
+            lang('DayTrack.birthday.duplicateName'),
             409,
         );
     }
@@ -265,7 +279,7 @@ class BirthdayService
     {
         $birthday = $this->birthdays->findForUser($birthdayId, $userId);
         if ($birthday === null) {
-            throw new ApiException('BIRTHDAY_NOT_FOUND', 'Der Geburtstag wurde nicht gefunden.', 404);
+            throw new ApiException('BIRTHDAY_NOT_FOUND', lang('DayTrack.birthday.notFound'), 404);
         }
 
         return $birthday;

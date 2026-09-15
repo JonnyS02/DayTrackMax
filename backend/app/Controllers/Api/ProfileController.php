@@ -40,6 +40,19 @@ class ProfileController extends ApiController
         });
     }
 
+    public function updateLocale(): ResponseInterface
+    {
+        $input = $this->trimInput($this->input(), 'locale');
+        if (! $this->validateData($input, 'locale')) {
+            return $this->validationFailure($this->validator->getErrors());
+        }
+
+        return $this->action(function () use ($input): ResponseInterface {
+            service('authService')->updateLocale($this->userId(), $input['locale']);
+            return $this->emptyResponse();
+        });
+    }
+
     public function cancelEmailChange(): ResponseInterface
     {
         return $this->action(fn (): ResponseInterface => $this->data(

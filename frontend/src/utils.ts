@@ -1,12 +1,8 @@
 import type { Birthday } from './types';
+import { localeTag } from './i18n/locale';
+import type { Locale } from './i18n/locale';
 
 const millisecondsPerDay = 86_400_000;
-const reminderDateFormatter = new Intl.DateTimeFormat('de-DE', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
@@ -24,12 +20,12 @@ export function userInitials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
-export function birthdayDateLabel(birthDate: string) {
+export function birthdayDateLabel(birthDate: string, locale: Locale) {
   const [, month, day] = birthDate.split('-').map(Number);
-  return new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long' }).format(new Date(2000, month - 1, day));
+  return new Intl.DateTimeFormat(localeTag(locale), { day: 'numeric', month: 'long' }).format(new Date(2000, month - 1, day));
 }
 
-export function nextReminderDateLabel(birthDate: string, daysBefore: number | null, today = new Date()) {
+export function nextReminderDateLabel(birthDate: string, daysBefore: number | null, locale: Locale, today = new Date()) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!match || daysBefore === null || daysBefore < 1 || daysBefore > 365) return null;
 
@@ -46,7 +42,12 @@ export function nextReminderDateLabel(birthDate: string, daysBefore: number | nu
     const thisYearOccurrence = occurrence(reminderYear);
     const nextOccurrence: number = thisYearOccurrence < reminderTimestamp ? occurrence(reminderYear + 1) : thisYearOccurrence;
     if ((nextOccurrence - reminderTimestamp) / millisecondsPerDay === daysBefore) {
-      return reminderDateFormatter.format(new Date(reminderTimestamp));
+      return new Intl.DateTimeFormat(localeTag(locale), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(reminderTimestamp));
     }
   }
 

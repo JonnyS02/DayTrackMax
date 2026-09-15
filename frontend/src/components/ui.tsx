@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
 import { gradientStyles, uiStyles } from '../design';
 import { cn } from '../utils';
+import { useApp } from './app-context';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'danger';
@@ -107,6 +108,31 @@ export function AppHeader({ children }: { children?: ReactNode }) {
   );
 }
 
+export function LanguageSwitch({ className, disabled = false }: { className?: string; disabled?: boolean }) {
+  const { copy, isSavingLocale, locale, selectLocale } = useApp();
+
+  return (
+    <div role="group" aria-label={copy.language.label} className={cn('flex h-9 shrink-0 items-center rounded-xl border border-sand-200 bg-white/70 p-0.5', className)}>
+      {(['de', 'en'] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={locale === option}
+          title={copy.language[option]}
+          disabled={disabled || isSavingLocale}
+          onClick={() => void selectLocale(option)}
+          className={cn(
+            'h-7 rounded-lg px-2 text-[11px] font-black uppercase tracking-wide transition disabled:cursor-wait disabled:opacity-50',
+            locale === option ? 'bg-plum-800 text-white shadow-sm' : 'text-stone-400 hover:text-coral-600',
+          )}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   return <div className="flex min-h-screen flex-col bg-sand-50 text-ink">{children}</div>;
 }
@@ -188,6 +214,7 @@ export function Footer() {
 }
 
 export function Modal({ title, children, onClose, size = 'md' }: { title: string; children: ReactNode; onClose: () => void; size?: 'sm' | 'md' }) {
+  const { copy } = useApp();
   const dialogRef = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
 
@@ -265,7 +292,7 @@ export function Modal({ title, children, onClose, size = 'md' }: { title: string
       >
         <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6 sm:gap-4">
           <h2 id="modal-title" className="text-xl font-black tracking-tight text-ink">{title}</h2>
-          <IconButton onClick={onClose} label="Dialog schließen">
+          <IconButton onClick={onClose} label={copy.common.closeDialog}>
             <X size={18} />
           </IconButton>
         </div>

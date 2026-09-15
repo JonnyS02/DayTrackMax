@@ -39,4 +39,5 @@ export type User = {
   name: string;
   email: string;
   pendingEmail: string | null;
+  locale: 'de' | 'en';
 };

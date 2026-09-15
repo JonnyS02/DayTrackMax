@@ -7,6 +7,7 @@ import { uiStyles } from '../design';
 import type { Birthday, BirthdayInput } from '../types';
 import { cn, nextReminderDateLabel } from '../utils';
 import { Button, Field, FormError, Modal } from './ui';
+import { useApp } from './app-context';
 
 const emptyBirthday: BirthdayInput = {
   firstName: '',
@@ -59,11 +60,12 @@ function ReminderToggle({ label, tone, checked, onChange, children }: { label: s
 }
 
 export function BirthdayForm({ birthday, onClose, onSave }: { birthday: Birthday | null; onClose: () => void; onSave: (birthday: BirthdayInput) => Promise<void> }) {
+  const { copy, locale } = useApp();
   const [form, setForm] = useState<BirthdayInput>(() => getInitialValues(birthday));
   const [feedback, setFeedback] = useState({ message: '', fields: {} as Record<string, string> });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const update = <Key extends keyof BirthdayInput>(key: Key, value: BirthdayInput[Key]) => setForm((current) => ({ ...current, [key]: value }));
-  const nextReminderDate = nextReminderDateLabel(form.birthDate, form.notifyDaysBefore);
+  const nextReminderDate = nextReminderDateLabel(form.birthDate, form.notifyDaysBefore, locale);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -79,25 +81,25 @@ export function BirthdayForm({ birthday, onClose, onSave }: { birthday: Birthday
   };
 
   return (
-    <Modal title={birthday ? 'Geburtstag bearbeiten' : 'Geburtstag hinzufügen'} onClose={onClose}>
+    <Modal title={birthday ? copy.birthdayForm.editTitle : copy.birthdayForm.addTitle} onClose={onClose}>
       <form onSubmit={submit} className={uiStyles.formStack}>
         <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-          <Field id="first-name" label="Vorname" value={form.firstName} onChange={(event) => update('firstName', event.target.value)} placeholder="Max" error={feedback.fields.firstName} required />
-          <Field id="last-name" label="Nachname" value={form.lastName} onChange={(event) => update('lastName', event.target.value)} placeholder="Mustermann" error={feedback.fields.lastName} />
+          <Field id="first-name" label={copy.birthdayForm.firstName} value={form.firstName} onChange={(event) => update('firstName', event.target.value)} placeholder="Max" error={feedback.fields.firstName} required />
+          <Field id="last-name" label={copy.birthdayForm.lastName} value={form.lastName} onChange={(event) => update('lastName', event.target.value)} placeholder={copy.birthdayForm.lastNamePlaceholder} error={feedback.fields.lastName} />
         </div>
-        <Field id="birth-date" label="Geburtsdatum" type="date" value={form.birthDate} onChange={(event) => update('birthDate', event.target.value)} icon={<CalendarDays size={17} />} error={feedback.fields.birthDate} required />
-        <ReminderToggle label="E-Mail am Geburtstag" tone="coral" checked={form.notifyOnBirthday} onChange={(checked) => update('notifyOnBirthday', checked)} />
-        <ReminderToggle label="Vorab erinnern" tone="peach" checked={form.notifyDaysBefore !== null} onChange={(checked) => update('notifyDaysBefore', checked ? 7 : null)}>
+        <Field id="birth-date" label={copy.birthdayForm.birthDate} type="date" value={form.birthDate} onChange={(event) => update('birthDate', event.target.value)} icon={<CalendarDays size={17} />} error={feedback.fields.birthDate} required />
+        <ReminderToggle label={copy.birthdayForm.notifyOnBirthday} tone="coral" checked={form.notifyOnBirthday} onChange={(checked) => update('notifyOnBirthday', checked)} />
+        <ReminderToggle label={copy.birthdayForm.notifyBefore} tone="peach" checked={form.notifyDaysBefore !== null} onChange={(checked) => update('notifyDaysBefore', checked ? 7 : null)}>
           <label className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-sand-200 px-3 py-2.5 text-sm text-stone-500 sm:px-4 sm:py-3">
-            <input type="number" min="1" max="365" value={form.notifyDaysBefore ?? 7} onChange={(event) => update('notifyDaysBefore', Math.max(1, Number(event.target.value)))} className={cn('h-9 w-16 rounded-xl border border-sand-200 bg-white px-2 text-center font-bold text-ink', uiStyles.focusRing)} aria-label="Vorab-Erinnerung in Tagen" />
-            <span>{form.notifyDaysBefore === 1 ? 'Tag vorher' : 'Tage vorher'}</span>
-            {nextReminderDate && <span className="w-full text-xs font-semibold text-stone-600 sm:ml-auto sm:w-auto">Nächste Erinnerung: {nextReminderDate}</span>}
+            <input type="number" min="1" max="365" value={form.notifyDaysBefore ?? 7} onChange={(event) => update('notifyDaysBefore', Math.max(1, Number(event.target.value)))} className={cn('h-9 w-16 rounded-xl border border-sand-200 bg-white px-2 text-center font-bold text-ink', uiStyles.focusRing)} aria-label={copy.birthdayForm.reminderDaysLabel} />
+            <span>{copy.birthdayForm.daysBefore(form.notifyDaysBefore ?? 7)}</span>
+            {nextReminderDate && <span className="w-full text-xs font-semibold text-stone-600 sm:ml-auto sm:w-auto">{copy.birthdayForm.nextReminder(nextReminderDate)}</span>}
           </label>
         </ReminderToggle>
         <FormError message={feedback.message} />
         <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="secondary" onClick={onClose}>Abbrechen</Button>
-          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Speichert …' : birthday ? 'Speichern' : 'Anlegen'}</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{copy.common.cancel}</Button>
+          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? copy.common.saving : birthday ? copy.common.save : copy.birthdayForm.create}</Button>
         </div>
       </form>
     </Modal>

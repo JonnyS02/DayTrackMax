@@ -66,7 +66,7 @@ abstract class ApiController extends BaseController
             ->setJSON([
                 'error' => [
                     'code' => 'RATE_LIMITED',
-                    'message' => 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.',
+                    'message' => lang('DayTrack.api.rateLimited'),
                 ],
             ]);
     }
@@ -89,7 +89,7 @@ abstract class ApiController extends BaseController
         return $this->response->setStatusCode(422)->setJSON([
             'error' => [
                 'code' => 'VALIDATION_FAILED',
-                'message' => 'Bitte prüfen Sie Ihre Eingaben.',
+                'message' => lang('DayTrack.api.validationFailed'),
                 'fields' => $fields,
             ],
         ]);
@@ -110,7 +110,7 @@ abstract class ApiController extends BaseController
             log_message('error', '{type}: {message}', ['type' => $exception::class, 'message' => $exception->getMessage()]);
 
             return $this->response->setStatusCode(500)->setJSON([
-                'error' => ['code' => 'SERVER_ERROR', 'message' => 'Die Anfrage konnte nicht verarbeitet werden.'],
+                'error' => ['code' => 'SERVER_ERROR', 'message' => lang('DayTrack.api.serverError')],
             ]);
         }
     }

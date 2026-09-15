@@ -46,13 +46,18 @@ class BirthdayModel extends Model
         return $this->where('user_id', $userId)->findAll();
     }
 
+    public function deleteAllForUser(int $userId): void
+    {
+        $this->where('user_id', $userId)->delete();
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
     public function findAllForReminders(): array
     {
         return $this
-            ->select('birthdays.*, users.email AS user_email')
+            ->select('birthdays.*, users.email AS user_email, users.locale AS user_locale')
             ->join('users', 'users.id = birthdays.user_id')
             ->where('users.email_verified', 1)
             ->findAll();

@@ -15,7 +15,7 @@ class CronKeyFilter implements FilterInterface
         if ($configuredKey === '') {
             return service('response')
                 ->setStatusCode(503)
-                ->setJSON(['error' => ['code' => 'CRON_NOT_CONFIGURED', 'message' => 'Der Cron-Zugang ist nicht konfiguriert.']]);
+                ->setJSON(['error' => ['code' => 'CRON_NOT_CONFIGURED', 'message' => lang('DayTrack.api.cronNotConfigured')]]);
         }
 
         $providedKey = $request->getHeaderLine('X-Cron-Key');
@@ -25,7 +25,7 @@ class CronKeyFilter implements FilterInterface
 
         return service('response')
             ->setStatusCode(401)
-            ->setJSON(['error' => ['code' => 'INVALID_CRON_KEY', 'message' => 'Der Cron-Zugang ist ungültig.']]);
+            ->setJSON(['error' => ['code' => 'INVALID_CRON_KEY', 'message' => lang('DayTrack.api.invalidCronKey')]]);
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): void

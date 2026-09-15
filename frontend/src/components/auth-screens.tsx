@@ -7,13 +7,8 @@ import { gradientStyles, uiStyles } from '../design';
 import { screenRoutes } from '../routes';
 import type { Screen } from '../types';
 import { cn } from '../utils';
-import { Button, Field, Footer, FormError, Logo } from './ui';
-
-type AuthProps = {
-  screen: Exclude<Screen, 'dashboard' | 'profile'>;
-  onNavigate: (screen: Screen) => void;
-  showToast: (message: string) => void;
-};
+import { useApp } from './app-context';
+import { Button, Field, Footer, FormError, LanguageSwitch, Logo } from './ui';
 
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -24,7 +19,8 @@ function AuthLayout({ children }: { children: ReactNode }) {
         <div className="pointer-events-none absolute -bottom-20 -left-8 h-52 w-[115%] rounded-[50%] border border-white/20" />
         <div className="pointer-events-none absolute bottom-14 right-16 h-20 w-20 rounded-full bg-peach-200/80 shadow-[0_0_80px_30px_rgba(255,214,162,0.35)]" />
       </section>
-      <section className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 sm:px-6 lg:px-8">
+      <section className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-4 sm:px-6 lg:px-8">
+        <LanguageSwitch className="absolute right-4 top-4 sm:right-6 sm:top-6 lg:right-8 lg:top-8" />
         <div className="flex flex-1 flex-col justify-center py-6 sm:py-8 lg:py-10">
           <div className="mb-7 sm:mb-8 lg:hidden"><Logo /></div>
           {children}
@@ -54,6 +50,7 @@ function AuthIcon({ children, tone, large = false, centered = false }: { childre
 }
 
 function AuthStatus({ icon, title, children, primaryLabel, onPrimary, onResend, busy = false }: { icon: ReactNode; title: string; children: ReactNode; primaryLabel: string; onPrimary: () => void; onResend?: () => void; busy?: boolean }) {
+  const { copy } = useApp();
   return (
     <AuthLayout>
       <AuthPanel centered>
@@ -61,24 +58,24 @@ function AuthStatus({ icon, title, children, primaryLabel, onPrimary, onResend, 
         <Title>{title}</Title>
         <div className="mb-7 text-sm leading-6 text-stone-500">{children}</div>
         <Button onClick={onPrimary} size="large" className="w-full" disabled={busy}>{primaryLabel}</Button>
-        {onResend && <button onClick={onResend} disabled={busy} className={cn('mt-5 text-sm disabled:opacity-50', uiStyles.textLink)}>Erneut senden</button>}
+        {onResend && <button onClick={onResend} disabled={busy} className={cn('mt-5 text-sm disabled:opacity-50', uiStyles.textLink)}>{copy.auth.resend}</button>}
       </AuthPanel>
     </AuthLayout>
   );
 }
 
-const passwordRequirements = [
-  { label: 'Mindestens 10 Zeichen', isMet: (password: string) => password.length >= 10 },
-  { label: 'Mindestens eine Zahl', isMet: (password: string) => /[0-9]/.test(password) },
-  { label: 'Mindestens ein Sonderzeichen', isMet: (password: string) => /[^a-zA-Z0-9]/.test(password) },
-] as const;
-
 function PasswordRequirementList({ id, password }: { id: string; password: string }) {
+  const { copy } = useApp();
+  const passwordRequirements = [
+    { label: copy.auth.password.minimumLength, isMet: (value: string) => value.length >= 10 },
+    { label: copy.auth.password.number, isMet: (value: string) => /[0-9]/.test(value) },
+    { label: copy.auth.password.specialCharacter, isMet: (value: string) => /[^a-zA-Z0-9]/.test(value) },
+  ];
   return (
-    <ul id={id} aria-label="Passwortanforderungen" className="grid gap-1.5 rounded-xl bg-sand-100/70 px-3 py-2.5 text-xs sm:grid-cols-2">
+    <ul id={id} aria-label={copy.auth.password.requirements} className="grid gap-1.5 rounded-xl bg-sand-100/70 px-3 py-2.5 text-xs sm:grid-cols-2">
       {passwordRequirements.map(({ label, isMet }) => {
         const met = isMet(password);
-        const status = met ? 'Erfüllt' : password ? 'Nicht erfüllt' : 'Offen';
+        const status = met ? copy.auth.password.met : password ? copy.auth.password.unmet : copy.auth.password.open;
         const Icon = met ? Check : password ? X : Circle;
 
         return (
@@ -92,7 +89,8 @@ function PasswordRequirementList({ id, password }: { id: string; password: strin
   );
 }
 
-function PasswordField({ label = 'Passwort', id = 'password', autoComplete = 'current-password', error, value, onChange, showRequirements = false }: { label?: string; id?: string; autoComplete?: string; error?: string; value?: string; onChange?: ChangeEventHandler<HTMLInputElement>; showRequirements?: boolean }) {
+function PasswordField({ label, id = 'password', autoComplete = 'current-password', error, value, onChange, showRequirements = false }: { label?: string; id?: string; autoComplete?: string; error?: string; value?: string; onChange?: ChangeEventHandler<HTMLInputElement>; showRequirements?: boolean }) {
+  const { copy } = useApp();
   const [visible, setVisible] = useState(false);
   const requirementsId = `${id}-requirements`;
   return (
@@ -100,11 +98,11 @@ function PasswordField({ label = 'Passwort', id = 'password', autoComplete = 'cu
       <Field
         id={id}
         name={id}
-        label={label}
+        label={label ?? copy.common.password}
         type={visible ? 'text' : 'password'}
         autoComplete={autoComplete}
         icon={<LockKeyhole size={17} />}
-        endAdornment={<button type="button" onClick={() => setVisible(!visible)} className="p-1 text-stone-400 transition hover:text-plum-800" aria-label={visible ? 'Passwort verbergen' : 'Passwort anzeigen'}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
+        endAdornment={<button type="button" onClick={() => setVisible(!visible)} className="p-1 text-stone-400 transition hover:text-plum-800" aria-label={visible ? copy.auth.password.hide : copy.auth.password.show}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
         error={error}
         value={value}
         onChange={onChange}
@@ -117,10 +115,12 @@ function PasswordField({ label = 'Passwort', id = 'password', autoComplete = 'cu
 }
 
 function BackButton({ onClick }: { onClick: () => void }) {
-  return <button onClick={onClick} className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-stone-500 transition hover:text-coral-600 sm:mb-8"><ArrowLeft size={16} /> Zurück</button>;
+  const { copy } = useApp();
+  return <button onClick={onClick} className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-stone-500 transition hover:text-coral-600 sm:mb-8"><ArrowLeft size={16} /> {copy.common.back}</button>;
 }
 
-function Login({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
+function Login() {
+  const { copy, navigate } = useApp();
   const route = useNavigate();
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState({ message: '', fields: {} as Record<string, string> });
@@ -132,7 +132,7 @@ function Login({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
     const email = String(form.get('email') ?? '');
     try {
       await api.login(email, String(form.get('password') ?? ''));
-      onNavigate('dashboard');
+      navigate('dashboard');
     } catch (requestError) {
       if (requestError instanceof ApiError && requestError.code === 'ACCOUNT_LOCKED') {
         route(`${screenRoutes.locked}?email=${encodeURIComponent(email)}`);
@@ -147,17 +147,18 @@ function Login({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
   };
 
   return (
-    <AuthLayout><AuthPanel><Title>Anmelden</Title><form onSubmit={submit} className={uiStyles.formStack}>
-      <Field id="login-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="max.mustermann@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required />
+    <AuthLayout><AuthPanel><Title>{copy.auth.login.title}</Title><form onSubmit={submit} className={uiStyles.formStack}>
+      <Field id="login-email" name="email" label={copy.common.email} type="email" autoComplete="email" placeholder="name@example.com" icon={<Mail size={17} />} error={feedback.fields.email} required />
       <PasswordField error={feedback.fields.password} />
-      <div className="text-right text-sm"><button type="button" onClick={() => onNavigate('forgot-password')} className={uiStyles.textLink}>Passwort vergessen?</button></div>
+      <div className="text-right text-sm"><button type="button" onClick={() => navigate('forgot-password')} className={uiStyles.textLink}>{copy.auth.login.forgotPassword}</button></div>
       <FormError message={feedback.message} />
-      <Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? 'Meldet an …' : 'Anmelden'}</Button>
-    </form><p className="mt-7 text-center text-sm text-stone-500">Noch kein Konto? <button onClick={() => onNavigate('register')} className={cn('font-black', uiStyles.textLink)}>Registrieren</button></p></AuthPanel></AuthLayout>
+      <Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? copy.auth.login.submitting : copy.auth.login.submit}</Button>
+    </form><p className="mt-7 text-center text-sm text-stone-500">{copy.auth.login.noAccount} <button onClick={() => navigate('register')} className={cn('font-black', uiStyles.textLink)}>{copy.auth.login.register}</button></p></AuthPanel></AuthLayout>
   );
 }
 
-function Register({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
+function Register() {
+  const { copy, locale, navigate } = useApp();
   const route = useNavigate();
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
@@ -169,7 +170,7 @@ function Register({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email') ?? '');
     try {
-      await api.register(String(form.get('name') ?? ''), email, String(form.get('password') ?? ''), String(form.get('passwordConfirmation') ?? ''));
+      await api.register(String(form.get('name') ?? ''), email, String(form.get('password') ?? ''), String(form.get('passwordConfirmation') ?? ''), locale);
       route(`${screenRoutes['verify-email']}?email=${encodeURIComponent(email)}`);
     } catch (requestError) {
       setFeedback(formErrors(requestError, ['name', 'email', 'password', 'passwordConfirmation']));
@@ -179,36 +180,37 @@ function Register({ onNavigate }: Pick<AuthProps, 'onNavigate'>) {
   };
 
   return (
-    <AuthLayout><AuthPanel><BackButton onClick={() => onNavigate('login')} /><Title>Registrieren</Title><form onSubmit={submit} className={uiStyles.formStack}>
-      <Field id="register-name" name="name" label="Name" autoComplete="name" placeholder="Max Mustermann" icon={<UserRound size={17} />} error={feedback.fields.name} required />
-      <Field id="register-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="max.mustermann@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required />
+    <AuthLayout><AuthPanel><BackButton onClick={() => navigate('login')} /><Title>{copy.auth.register.title}</Title><form onSubmit={submit} className={uiStyles.formStack}>
+      <Field id="register-name" name="name" label={copy.common.name} autoComplete="name" placeholder="Max Smith" icon={<UserRound size={17} />} error={feedback.fields.name} required />
+      <Field id="register-email" name="email" label={copy.common.email} type="email" autoComplete="email" placeholder="name@example.com" icon={<Mail size={17} />} error={feedback.fields.email} required />
       <PasswordField autoComplete="new-password" error={feedback.fields.password} value={password} onChange={(event) => setPassword(event.target.value)} showRequirements />
-      <PasswordField label="Passwort wiederholen" id="passwordConfirmation" autoComplete="new-password" error={feedback.fields.passwordConfirmation} />
+      <PasswordField label={copy.auth.register.repeatPassword} id="passwordConfirmation" autoComplete="new-password" error={feedback.fields.passwordConfirmation} />
       <FormError message={feedback.message} />
-      <Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? 'Erstellt …' : 'Konto erstellen'}</Button>
+      <Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? copy.auth.register.submitting : copy.auth.register.submit}</Button>
     </form></AuthPanel></AuthLayout>
   );
 }
 
-function VerifyEmail({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | 'showToast'>) {
+function VerifyEmail() {
+  const { copy, navigate, showToast } = useApp();
   const route = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email') ?? '';
   const processedToken = useRef<string | null>(null);
   const [state, setState] = useState<'ready' | 'checking' | 'success' | 'error'>(token ? 'checking' : 'ready');
-  const [message, setMessage] = useState(token ? 'Der Link wird geprüft.' : email ? `Link gesendet an ${email}` : 'Öffnen Sie den Link aus Ihrer E-Mail.');
+  const [requestMessage, setRequestMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!token || processedToken.current === token) return;
     processedToken.current = token;
     setState('checking');
-    setMessage('Der Link wird geprüft.');
+    setRequestMessage('');
     route(screenRoutes['verify-email'], { replace: true });
     api.confirmEmailVerification(token)
-      .then(() => { setState('success'); setMessage('Ihre E-Mail-Adresse wurde bestätigt.'); })
-      .catch((requestError) => { setState('error'); setMessage(errorMessage(requestError)); });
+      .then(() => { setState('success'); setRequestMessage(''); })
+      .catch((requestError) => { setState('error'); setRequestMessage(errorMessage(requestError)); });
   }, [route, token]);
 
   useEffect(() => {
@@ -224,7 +226,7 @@ function VerifyEmail({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | '
 
         if (verified) {
           setState('success');
-          setMessage('Ihre E-Mail-Adresse wurde bestätigt.');
+          setRequestMessage('');
           return;
         }
       } catch {
@@ -247,20 +249,26 @@ function VerifyEmail({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | '
     setBusy(true);
     try {
       await api.requestEmailVerification(email);
-      showToast('E-Mail erneut gesendet');
+      showToast(copy.auth.verify.resent);
     } catch (requestError) {
-      setMessage(errorMessage(requestError));
+      setRequestMessage(errorMessage(requestError));
       setState('error');
     } finally {
       setBusy(false);
     }
   };
 
-  const title = state === 'success' ? 'E-Mail bestätigt' : state === 'error' ? 'Link ungültig' : 'E-Mail bestätigen';
-  return <AuthStatus icon={<MailCheck size={29} />} title={title} primaryLabel="Zur Anmeldung" onPrimary={() => onNavigate('login')} onResend={email !== '' && state !== 'checking' ? resend : undefined} busy={busy || state === 'checking'}>{message}</AuthStatus>;
+  const title = state === 'success' ? copy.auth.verify.confirmedTitle : state === 'error' ? copy.auth.verify.invalidTitle : copy.auth.verify.title;
+  const message = requestMessage || (state === 'checking'
+    ? copy.auth.verify.checking
+    : state === 'success'
+      ? copy.auth.verify.confirmedMessage
+      : email ? copy.auth.verify.sentTo(email) : copy.auth.verify.openEmail);
+  return <AuthStatus icon={<MailCheck size={29} />} title={title} primaryLabel={copy.auth.verify.toLogin} onPrimary={() => navigate('login')} onResend={email !== '' && state !== 'checking' ? resend : undefined} busy={busy || state === 'checking'}>{message}</AuthStatus>;
 }
 
-function ForgotPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | 'showToast'>) {
+function ForgotPassword() {
+  const { copy, navigate, showToast } = useApp();
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState({ message: '', fields: {} as Record<string, string> });
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -270,8 +278,8 @@ function ForgotPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' 
     const email = String(new FormData(event.currentTarget).get('email') ?? '');
     try {
       await api.requestPasswordReset(email);
-      showToast('Reset-Link gesendet');
-      onNavigate('login');
+      showToast(copy.auth.forgot.sent);
+      navigate('login');
     } catch (requestError) {
       setFeedback(formErrors(requestError, ['email']));
     } finally {
@@ -279,10 +287,11 @@ function ForgotPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' 
     }
   };
 
-  return <AuthLayout><AuthPanel><BackButton onClick={() => onNavigate('login')} /><AuthIcon tone="peach"><KeyRound size={24} /></AuthIcon><Title>Passwort zurücksetzen</Title><form onSubmit={submit} className={uiStyles.formStack}><Field id="forgot-email" name="email" label="E-Mail" type="email" autoComplete="email" placeholder="max.mustermann@beispiel.de" icon={<Mail size={17} />} error={feedback.fields.email} required /><FormError message={feedback.message} /><Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? 'Sendet …' : 'Reset-Link senden'}</Button></form></AuthPanel></AuthLayout>;
+  return <AuthLayout><AuthPanel><BackButton onClick={() => navigate('login')} /><AuthIcon tone="peach"><KeyRound size={24} /></AuthIcon><Title>{copy.auth.forgot.title}</Title><form onSubmit={submit} className={uiStyles.formStack}><Field id="forgot-email" name="email" label={copy.common.email} type="email" autoComplete="email" placeholder="name@example.com" icon={<Mail size={17} />} error={feedback.fields.email} required /><FormError message={feedback.message} /><Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? copy.common.sending : copy.auth.forgot.submit}</Button></form></AuthPanel></AuthLayout>;
 }
 
-function Locked({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | 'showToast'>) {
+function Locked() {
+  const { copy, navigate, showToast } = useApp();
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') ?? '';
   const [busy, setBusy] = useState(false);
@@ -291,17 +300,18 @@ function Locked({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | 'showT
     setBusy(true);
     try {
       await api.requestPasswordReset(email);
-      showToast('Reset-Link erneut gesendet');
+      showToast(copy.auth.locked.resent);
     } catch (requestError) {
       showToast(errorMessage(requestError));
     } finally {
       setBusy(false);
     }
   };
-  return <AuthStatus icon={<ShieldAlert size={29} />} title="Konto gesperrt" primaryLabel="Zur Anmeldung" onPrimary={() => onNavigate('login')} onResend={email ? resend : undefined} busy={busy}>Reset-Link gesendet{email && <> an <span className="font-bold text-ink">{email}</span></>}</AuthStatus>;
+  return <AuthStatus icon={<ShieldAlert size={29} />} title={copy.auth.locked.title} primaryLabel={copy.auth.verify.toLogin} onPrimary={() => navigate('login')} onResend={email ? resend : undefined} busy={busy}>{email ? copy.auth.locked.sentTo(email) : copy.auth.locked.sent}</AuthStatus>;
 }
 
-function ResetPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' | 'showToast'>) {
+function ResetPassword() {
+  const { copy, navigate, showToast } = useApp();
   const route = useNavigate();
   const [searchParams] = useSearchParams();
   const tokenParameter = searchParams.get('token') ?? '';
@@ -310,7 +320,8 @@ function ResetPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' |
   const [state, setState] = useState<'checking' | 'ready' | 'error'>(token ? 'checking' : 'error');
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
-  const [feedback, setFeedback] = useState({ message: token ? '' : 'Der Link ist ungültig oder unvollständig.', fields: {} as Record<string, string> });
+  const [linkError, setLinkError] = useState<'missing' | 'expired' | null>(token ? null : 'missing');
+  const [feedback, setFeedback] = useState({ message: '', fields: {} as Record<string, string> });
 
   useEffect(() => {
     if (!token || validationStarted.current) return;
@@ -319,7 +330,7 @@ function ResetPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' |
     api.validatePasswordResetToken(token)
       .then(() => setState('ready'))
       .catch(() => {
-        setFeedback({ message: 'Der Link ist ungültig oder abgelaufen.', fields: {} });
+        setLinkError('expired');
         setState('error');
       });
   }, [route, token]);
@@ -332,10 +343,11 @@ function ResetPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' |
     const form = new FormData(event.currentTarget);
     try {
       await api.resetPassword(token, String(form.get('password') ?? ''), String(form.get('passwordConfirmation') ?? ''));
-      showToast('Passwort geändert');
-      onNavigate('login');
+      showToast(copy.auth.reset.passwordChanged);
+      navigate('login');
     } catch (requestError) {
       if (requestError instanceof ApiError && requestError.code === 'INVALID_TOKEN') {
+        setLinkError(null);
         setFeedback({ message: requestError.message, fields: {} });
         setState('error');
       } else {
@@ -347,23 +359,27 @@ function ResetPassword({ onNavigate, showToast }: Pick<AuthProps, 'onNavigate' |
   };
 
   if (state === 'checking') {
-    return <AuthLayout><AuthPanel centered><AuthIcon tone="ocean" large centered><KeyRound size={29} /></AuthIcon><Title>Link wird geprüft</Title></AuthPanel></AuthLayout>;
+    return <AuthLayout><AuthPanel centered><AuthIcon tone="ocean" large centered><KeyRound size={29} /></AuthIcon><Title>{copy.auth.reset.checkingTitle}</Title></AuthPanel></AuthLayout>;
   }
 
   if (state === 'error') {
-    return <AuthStatus icon={<ShieldAlert size={29} />} title="Link ungültig" primaryLabel="Neuen Link anfordern" onPrimary={() => onNavigate('forgot-password')}>{feedback.message}</AuthStatus>;
+    const message = linkError === 'missing' ? copy.auth.reset.missingLink : linkError === 'expired' ? copy.auth.reset.expiredLink : feedback.message;
+    return <AuthStatus icon={<ShieldAlert size={29} />} title={copy.auth.reset.invalidTitle} primaryLabel={copy.auth.reset.requestNewLink} onPrimary={() => navigate('forgot-password')}>{message}</AuthStatus>;
   }
 
-  return <AuthLayout><AuthPanel><AuthIcon tone="ocean"><KeyRound size={24} /></AuthIcon><Title>Neues Passwort</Title><form onSubmit={submit} className={uiStyles.formStack}><PasswordField label="Neues Passwort" autoComplete="new-password" error={feedback.fields.password} value={password} onChange={(event) => setPassword(event.target.value)} showRequirements /><PasswordField label="Passwort wiederholen" id="passwordConfirmation" autoComplete="new-password" error={feedback.fields.passwordConfirmation} /><FormError message={feedback.message} /><Button type="submit" size="large" className="w-full" disabled={busy || !token}>{busy ? 'Speichert …' : 'Speichern'}</Button></form></AuthPanel></AuthLayout>;
+  return <AuthLayout><AuthPanel><AuthIcon tone="ocean"><KeyRound size={24} /></AuthIcon><Title>{copy.auth.reset.title}</Title><form onSubmit={submit} className={uiStyles.formStack}><PasswordField label={copy.auth.reset.newPassword} autoComplete="new-password" error={feedback.fields.password} value={password} onChange={(event) => setPassword(event.target.value)} showRequirements /><PasswordField label={copy.auth.reset.repeatPassword} id="passwordConfirmation" autoComplete="new-password" error={feedback.fields.passwordConfirmation} /><FormError message={feedback.message} /><Button type="submit" size="large" className="w-full" disabled={busy || !token}>{busy ? copy.common.saving : copy.common.save}</Button></form></AuthPanel></AuthLayout>;
 }
 
-export function AuthScreens({ screen, onNavigate, showToast }: AuthProps) {
+export function AuthScreens({ screen }: { screen: Exclude<Screen, 'dashboard' | 'profile'> }) {
+  const { clearUserLocale } = useApp();
+  useEffect(clearUserLocale, [clearUserLocale]);
+
   switch (screen) {
-    case 'login': return <Login onNavigate={onNavigate} />;
-    case 'register': return <Register onNavigate={onNavigate} />;
-    case 'verify-email': return <VerifyEmail onNavigate={onNavigate} showToast={showToast} />;
-    case 'forgot-password': return <ForgotPassword onNavigate={onNavigate} showToast={showToast} />;
-    case 'locked': return <Locked onNavigate={onNavigate} showToast={showToast} />;
-    case 'reset-password': return <ResetPassword onNavigate={onNavigate} showToast={showToast} />;
+    case 'login': return <Login />;
+    case 'register': return <Register />;
+    case 'verify-email': return <VerifyEmail />;
+    case 'forgot-password': return <ForgotPassword />;
+    case 'locked': return <Locked />;
+    case 'reset-password': return <ResetPassword />;
   }
 }

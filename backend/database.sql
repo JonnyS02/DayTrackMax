@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `name` VARCHAR(120) NOT NULL,
     `email` VARCHAR(254) NOT NULL,
     `pending_email` VARCHAR(254) NULL,
+    `locale` CHAR(2) NOT NULL DEFAULT 'de',
     `password_hash` VARCHAR(255) NOT NULL,
     `email_verified` TINYINT(1) NOT NULL DEFAULT 0,
     `failed_login_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,

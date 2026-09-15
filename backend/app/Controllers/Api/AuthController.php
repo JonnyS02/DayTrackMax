@@ -13,7 +13,7 @@ class AuthController extends ApiController
 
     public function register(): ResponseInterface
     {
-        $input = $this->trimInput($this->input(), 'name', 'email');
+        $input = $this->trimInput($this->input(), 'name', 'email', 'locale');
         if (! $this->validateData($input, 'register')) {
             return $this->validationFailure($this->validator->getErrors());
         }
@@ -23,7 +23,7 @@ class AuthController extends ApiController
         }
 
         return $this->action(function () use ($input): ResponseInterface {
-            service('authService')->register($input['name'], $input['email'], $input['password']);
+            service('authService')->register($input['name'], $input['email'], $input['password'], $input['locale']);
             return $this->emptyResponse(201);
         });
     }

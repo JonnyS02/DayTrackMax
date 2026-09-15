@@ -1,0 +1,5 @@
+<mj-section padding="18px 28px 0">
+  <mj-column>
+    <mj-text mj-class="muted" align="center">This email was sent automatically by DayTrack Max.</mj-text>
+  </mj-column>
+</mj-section>

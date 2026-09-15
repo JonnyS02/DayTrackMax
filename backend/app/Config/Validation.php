@@ -43,44 +43,49 @@ class Validation extends BaseConfig
     // --------------------------------------------------------------------
 
     public array $register = [
-        'name' => ['label' => 'Name', 'rules' => ['required', 'max_length[120]']],
-        'email' => ['label' => 'E-Mail', 'rules' => ['required', 'valid_email', 'max_length[254]']],
-        'password' => ['label' => 'Passwort', 'rules' => ['required', 'min_length[10]', 'max_length[255]', 'regex_match[/[0-9]/]', 'regex_match[/[^a-zA-Z0-9]/]']],
-        'passwordConfirmation' => ['label' => 'Passwortbestätigung', 'rules' => ['required', 'matches[password]']],
+        'name' => ['label' => 'Fields.name', 'rules' => ['required', 'max_length[120]']],
+        'email' => ['label' => 'Fields.email', 'rules' => ['required', 'valid_email', 'max_length[254]']],
+        'password' => ['label' => 'Fields.password', 'rules' => ['required', 'min_length[10]', 'max_length[255]', 'regex_match[/[0-9]/]', 'regex_match[/[^a-zA-Z0-9]/]']],
+        'passwordConfirmation' => ['label' => 'Fields.passwordConfirmation', 'rules' => ['required', 'matches[password]']],
+        'locale' => ['label' => 'Fields.locale', 'rules' => ['required', 'in_list[de,en]']],
     ];
 
     public array $login = [
-        'email' => ['label' => 'E-Mail', 'rules' => ['required', 'valid_email', 'max_length[254]']],
-        'password' => ['label' => 'Passwort', 'rules' => ['required', 'max_length[255]']],
+        'email' => ['label' => 'Fields.email', 'rules' => ['required', 'valid_email', 'max_length[254]']],
+        'password' => ['label' => 'Fields.password', 'rules' => ['required', 'max_length[255]']],
     ];
 
     public array $emailRequest = [
-        'email' => ['label' => 'E-Mail', 'rules' => ['required', 'valid_email', 'max_length[254]']],
+        'email' => ['label' => 'Fields.email', 'rules' => ['required', 'valid_email', 'max_length[254]']],
     ];
 
     public array $tokenRequest = [
-        'token' => ['label' => 'Token', 'rules' => ['required', 'exact_length[64]', 'alpha_numeric']],
+        'token' => ['label' => 'Fields.token', 'rules' => ['required', 'exact_length[64]', 'alpha_numeric']],
     ];
 
     public array $resetPassword = [
-        'token' => ['label' => 'Token', 'rules' => ['required', 'exact_length[64]', 'alpha_numeric']],
-        'password' => ['label' => 'Passwort', 'rules' => ['required', 'min_length[10]', 'max_length[255]', 'regex_match[/[0-9]/]', 'regex_match[/[^a-zA-Z0-9]/]']],
-        'passwordConfirmation' => ['label' => 'Passwortbestätigung', 'rules' => ['required', 'matches[password]']],
+        'token' => ['label' => 'Fields.token', 'rules' => ['required', 'exact_length[64]', 'alpha_numeric']],
+        'password' => ['label' => 'Fields.password', 'rules' => ['required', 'min_length[10]', 'max_length[255]', 'regex_match[/[0-9]/]', 'regex_match[/[^a-zA-Z0-9]/]']],
+        'passwordConfirmation' => ['label' => 'Fields.passwordConfirmation', 'rules' => ['required', 'matches[password]']],
     ];
 
     public array $profile = [
-        'name' => ['label' => 'Name', 'rules' => ['required', 'max_length[120]']],
-        'email' => ['label' => 'E-Mail', 'rules' => ['required', 'valid_email', 'max_length[254]']],
-        'currentPassword' => ['label' => 'Aktuelles Passwort', 'rules' => ['permit_empty', 'max_length[255]']],
+        'name' => ['label' => 'Fields.name', 'rules' => ['required', 'max_length[120]']],
+        'email' => ['label' => 'Fields.email', 'rules' => ['required', 'valid_email', 'max_length[254]']],
+        'currentPassword' => ['label' => 'Fields.currentPassword', 'rules' => ['permit_empty', 'max_length[255]']],
+    ];
+
+    public array $locale = [
+        'locale' => ['label' => 'Fields.locale', 'rules' => ['required', 'in_list[de,en]']],
     ];
 
     public array $deleteAccount = [
-        'password' => ['label' => 'Passwort', 'rules' => ['required', 'max_length[255]']],
+        'password' => ['label' => 'Fields.password', 'rules' => ['required', 'max_length[255]']],
     ];
 
     public array $birthday = [
-        'firstName' => ['label' => 'Vorname', 'rules' => ['required', 'max_length[100]']],
-        'lastName' => ['label' => 'Nachname', 'rules' => ['permit_empty', 'max_length[100]']],
-        'birthDate' => ['label' => 'Geburtsdatum', 'rules' => ['required', 'valid_date[Y-m-d]']],
+        'firstName' => ['label' => 'Fields.firstName', 'rules' => ['required', 'max_length[100]']],
+        'lastName' => ['label' => 'Fields.lastName', 'rules' => ['permit_empty', 'max_length[100]']],
+        'birthDate' => ['label' => 'Fields.birthDate', 'rules' => ['required', 'valid_date[Y-m-d]']],
     ];
 }

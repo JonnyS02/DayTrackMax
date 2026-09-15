@@ -66,16 +66,16 @@ class BirthdayController extends ApiController
 
         $errors = [];
         if (! array_key_exists('notifyOnBirthday', $input) || ! is_bool($input['notifyOnBirthday'])) {
-            $errors['notifyOnBirthday'] = 'Bitte wählen Sie eine gültige Benachrichtigungseinstellung.';
+            $errors['notifyOnBirthday'] = lang('DayTrack.birthday.invalidNotification');
         }
 
         $daysBefore = $input['notifyDaysBefore'] ?? null;
         if ($daysBefore !== null && (! is_int($daysBefore) || $daysBefore < 1 || $daysBefore > 365)) {
-            $errors['notifyDaysBefore'] = 'Die Vorab-Erinnerung muss zwischen 1 und 365 Tagen liegen.';
+            $errors['notifyDaysBefore'] = lang('DayTrack.birthday.invalidAdvanceReminder');
         }
 
         if ($input['birthDate'] > date('Y-m-d')) {
-            $errors['birthDate'] = 'Das Geburtsdatum darf nicht in der Zukunft liegen.';
+            $errors['birthDate'] = lang('DayTrack.birthday.futureDate');
         }
 
         return $errors === [] ? null : $this->validationFailure($errors);

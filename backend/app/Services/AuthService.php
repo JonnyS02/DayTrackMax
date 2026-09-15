@@ -38,12 +38,13 @@ class AuthService
         $this->tokens->deleteExpired();
     }
 
-    public function register(string $name, string $email, string $password): void
+    public function register(string $name, string $email, string $password, string $locale): void
     {
         $email = $this->normalizeEmail($email);
-        if ($this->users->emailExists($email)) {
-            throw new ApiException('EMAIL_IN_USE', 'Für diese E-Mail-Adresse existiert bereits ein Konto.', 409, [
-                'email' => 'Für diese E-Mail-Adresse existiert bereits ein Konto.',
+        if ($this->config->isDemoEmail($email) || $this->users->emailExists($email)) {
+            $message = lang('DayTrack.auth.emailInUseAtRegistration');
+            throw new ApiException('EMAIL_IN_USE', $message, 409, [
+                'email' => $message,
             ]);
         }
 
@@ -51,12 +52,13 @@ class AuthService
         $userId = (int) $this->users->insert([
             'name' => $name,
             'email' => $email,
+            'locale' => $locale,
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
             'email_verified' => false,
             'failed_login_attempts' => 0,
         ], true);
 
-        $user = ['id' => $userId, 'name' => $name];
+        $user = ['id' => $userId, 'name' => $name, 'locale' => $locale];
         $this->sendVerification($user, self::VERIFY_EMAIL, $email);
         $this->session->set(self::VERIFICATION_USER_ID, $userId);
     }
@@ -66,28 +68,28 @@ class AuthService
         $user = $this->users->findByEmail($this->normalizeEmail($email));
 
         if ($user === null || ! password_verify($password, $user['password_hash'])) {
-            if ($user !== null) {
+            if ($user !== null && ! $this->config->isDemoEmail($user['email'])) {
                 $failedLogin = $this->users->recordFailedLoginAttempt((int) $user['id']);
                 if ($failedLogin['attempts'] >= 3) {
                     if ($failedLogin['newlyLocked']) {
                         $this->trySendingReset($user, true);
-                        throw new ApiException('ACCOUNT_LOCKED', 'Das Konto wurde gesperrt. Ein Reset-Link wurde per E-Mail versendet.', 423);
+                        throw new ApiException('ACCOUNT_LOCKED', lang('DayTrack.auth.accountLockedNow'), 423);
                     }
 
-                    throw new ApiException('ACCOUNT_LOCKED', 'Das Konto ist gesperrt. Nutzen Sie den Reset-Link oder fordern Sie einen neuen an.', 423);
+                    throw new ApiException('ACCOUNT_LOCKED', lang('DayTrack.auth.accountLocked'), 423);
                 }
             }
 
-            throw new ApiException('INVALID_CREDENTIALS', 'E-Mail oder Passwort ist nicht korrekt.', 401);
+            throw new ApiException('INVALID_CREDENTIALS', lang('DayTrack.auth.invalidCredentials'), 401);
         }
 
-        if ((int) $user['failed_login_attempts'] >= 3) {
-            throw new ApiException('ACCOUNT_LOCKED', 'Das Konto ist gesperrt. Setzen Sie Ihr Passwort über den Link in der E-Mail zurück.', 423);
+        if (! $this->config->isDemoEmail($user['email']) && (int) $user['failed_login_attempts'] >= 3) {
+            throw new ApiException('ACCOUNT_LOCKED', lang('DayTrack.auth.accountLockedReset'), 423);
         }
 
         if (! (bool) $user['email_verified']) {
             $this->session->set(self::VERIFICATION_USER_ID, (int) $user['id']);
-            throw new ApiException('EMAIL_NOT_VERIFIED', 'Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.', 403);
+            throw new ApiException('EMAIL_NOT_VERIFIED', lang('DayTrack.auth.emailNotVerified'), 403);
         }
 
         $userId = (int) $user['id'];
@@ -138,7 +140,7 @@ class AuthService
     {
         $email = $this->normalizeEmail($email);
         $user = $this->users->findByVerificationEmail($email);
-        if ($user === null) {
+        if ($user === null || $this->config->isDemoEmail($email) || $this->config->isDemoEmail($user['email'])) {
             return;
         }
 
@@ -153,13 +155,14 @@ class AuthService
     {
         $storedToken = $this->findToken($token, [self::VERIFY_EMAIL, self::VERIFY_EMAIL_CHANGE]);
         $user = $this->requireUser((int) $storedToken['user_id']);
+        $this->guardDemoAccount($user);
 
         $this->database->transBegin();
         try {
             if ($storedToken['purpose'] === self::VERIFY_EMAIL_CHANGE) {
                 $pendingEmail = $user['pending_email'];
-                if ($pendingEmail === null || $this->users->emailExists($pendingEmail, (int) $user['id'])) {
-                    throw new ApiException('EMAIL_IN_USE', 'Diese E-Mail-Adresse kann nicht übernommen werden.', 409);
+                if ($pendingEmail === null || $this->config->isDemoEmail($pendingEmail) || $this->users->emailExists($pendingEmail, (int) $user['id'])) {
+                    throw new ApiException('EMAIL_IN_USE', lang('DayTrack.auth.emailCannotBeUsed'), 409);
                 }
 
                 $this->users->update($user['id'], [
@@ -182,7 +185,7 @@ class AuthService
     public function requestPasswordReset(string $email): void
     {
         $user = $this->users->findByEmail($this->normalizeEmail($email));
-        if ($user !== null) {
+        if ($user !== null && ! $this->config->isDemoEmail($user['email'])) {
             $this->trySendingReset($user, (int) $user['failed_login_attempts'] >= 3);
         }
     }
@@ -196,6 +199,7 @@ class AuthService
     {
         $storedToken = $this->findToken($token, [self::RESET_PASSWORD]);
         $userId = (int) $storedToken['user_id'];
+        $this->guardDemoAccount($this->requireUser($userId));
 
         $this->database->transBegin();
         try {
@@ -214,7 +218,7 @@ class AuthService
     }
 
     /**
-     * @return array{id: int, name: string, email: string, pendingEmail: ?string}
+     * @return array{id: int, name: string, email: string, pendingEmail: ?string, locale: string}
      */
     public function profile(int $userId): array
     {
@@ -225,16 +229,25 @@ class AuthService
             'name' => $user['name'],
             'email' => $user['email'],
             'pendingEmail' => $user['pending_email'],
+            'locale' => $user['locale'],
         ];
     }
 
     /**
-     * @return array{id: int, name: string, email: string, pendingEmail: ?string}
+     * @return array{id: int, name: string, email: string, pendingEmail: ?string, locale: string}
      */
     public function updateProfile(int $userId, string $name, string $email, string $currentPassword): array
     {
         $user = $this->requireUser($userId);
         $email = $this->normalizeEmail($email);
+
+        if ($email !== $user['email']) {
+            $this->guardDemoAccount($user);
+            if ($this->config->isDemoEmail($email)) {
+                $message = lang('DayTrack.auth.emailCannotBeUsed');
+                throw new ApiException('EMAIL_IN_USE', $message, 409, ['email' => $message]);
+            }
+        }
 
         if ($email === $user['email']) {
             $this->users->update($userId, ['name' => trim($name), 'pending_email' => null]);
@@ -252,8 +265,9 @@ class AuthService
         $this->verifyCurrentPassword($user, $currentPassword, 'currentPassword');
 
         if ($this->users->emailExists($email, $userId)) {
-            throw new ApiException('EMAIL_IN_USE', 'Diese E-Mail-Adresse wird bereits verwendet.', 409, [
-                'email' => 'Diese E-Mail-Adresse wird bereits verwendet.',
+            $message = lang('DayTrack.auth.emailInUse');
+            throw new ApiException('EMAIL_IN_USE', $message, 409, [
+                'email' => $message,
             ]);
         }
 
@@ -272,11 +286,19 @@ class AuthService
 
     public function requestPasswordChange(int $userId): void
     {
-        $this->sendReset($this->requireUser($userId));
+        $user = $this->requireUser($userId);
+        $this->guardDemoAccount($user);
+        $this->sendReset($user);
+    }
+
+    public function updateLocale(int $userId, string $locale): void
+    {
+        $this->requireUser($userId);
+        $this->users->update($userId, ['locale' => $locale]);
     }
 
     /**
-     * @return array{id: int, name: string, email: string, pendingEmail: ?string}
+     * @return array{id: int, name: string, email: string, pendingEmail: ?string, locale: string}
      */
     public function cancelEmailChange(int $userId): array
     {
@@ -296,6 +318,7 @@ class AuthService
     public function deleteAccount(int $userId, string $password): void
     {
         $user = $this->requireUser($userId);
+        $this->guardDemoAccount($user);
         $this->verifyCurrentPassword($user, $password, 'password');
 
         $this->users->delete($userId);
@@ -328,16 +351,17 @@ class AuthService
 
             throw new ApiException(
                 'REAUTHENTICATION_REQUIRED',
-                'Zu viele falsche Passwortversuche. Bitte melden Sie sich erneut an.',
+                lang('DayTrack.auth.reauthenticationRequired'),
                 401,
             );
         }
 
+        $message = lang('DayTrack.auth.invalidPassword');
         throw new ApiException(
             'INVALID_PASSWORD',
-            'Das Passwort ist nicht korrekt.',
+            $message,
             422,
-            [$field => 'Das Passwort ist nicht korrekt.'],
+            [$field => $message],
         );
     }
 
@@ -346,26 +370,45 @@ class AuthService
         return 'daytrack-reauth-' . $userId;
     }
 
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function guardDemoAccount(array $user): void
+    {
+        if ($this->config->isDemoEmail($user['email'])) {
+            throw new ApiException('DEMO_ACCOUNT_RESTRICTED', lang('DayTrack.auth.demoRestricted'), 403);
+        }
+    }
+
     private function sendVerification(array $user, string $purpose, string $recipient): void
     {
         $emailChange = $purpose === self::VERIFY_EMAIL_CHANGE;
+        $locale = $user['locale'];
 
         $this->deliverToken(
             (int) $user['id'],
             $purpose,
             $this->config->verificationTokenMinutes,
-            function (string $token) use ($user, $recipient, $emailChange): void {
-                $url = $this->frontendURL('/verify-email?token=' . rawurlencode($token));
-                $this->mail->send('verify-email', $recipient, $emailChange ? 'E-Mail-Änderung bestätigen' : 'E-Mail bestätigen', [
-                    'preview_text' => $emailChange
-                        ? 'Bestätigen Sie Ihre neue E-Mail-Adresse für DayTrack Max.'
-                        : 'Bestätigen Sie Ihre E-Mail-Adresse für DayTrack Max.',
+            function (string $token) use ($user, $recipient, $emailChange, $locale): void {
+                $url = $this->frontendURL('/verify-email?token=' . rawurlencode($token) . '&lang=' . $locale);
+                $this->mail->send('verify-email', $locale, $recipient, lang(
+                    $emailChange ? 'DayTrack.email.verification.changeSubject' : 'DayTrack.email.verification.subject',
+                    [],
+                    $locale,
+                ), [
+                    'preview_text' => lang(
+                        $emailChange ? 'DayTrack.email.verification.changePreview' : 'DayTrack.email.verification.preview',
+                        [],
+                        $locale,
+                    ),
                     'user_name' => $user['name'],
-                    'verification_message' => $emailChange
-                        ? 'Bestätigen Sie Ihre neue E-Mail-Adresse, um die Änderung abzuschließen.'
-                        : 'Bestätigen Sie Ihre E-Mail-Adresse, um Ihr Konto zu aktivieren.',
+                    'verification_message' => lang(
+                        $emailChange ? 'DayTrack.email.verification.changeMessage' : 'DayTrack.email.verification.message',
+                        [],
+                        $locale,
+                    ),
                     'verification_url' => $url,
-                    'expires_in' => $this->durationLabel($this->config->verificationTokenMinutes),
+                    'expires_in' => $this->durationLabel($this->config->verificationTokenMinutes, $locale),
                 ]);
             },
         );
@@ -373,24 +416,32 @@ class AuthService
 
     private function sendReset(array $user, bool $accountLocked = false): void
     {
-        $expiresIn = $this->durationLabel($this->config->resetTokenMinutes);
+        $locale = $user['locale'];
+        $expiresIn = $this->durationLabel($this->config->resetTokenMinutes, $locale);
 
         $this->deliverToken(
             (int) $user['id'],
             self::RESET_PASSWORD,
             $this->config->resetTokenMinutes,
-            function (string $token) use ($user, $accountLocked, $expiresIn): void {
-                $url = $this->frontendURL('/reset-password?token=' . rawurlencode($token));
-                $this->mail->send('reset-password', $user['email'], 'Passwort zurücksetzen', [
-                    'preview_text' => $accountLocked
-                        ? 'Entsperren Sie Ihr DayTrack-Max-Konto mit einem neuen Passwort.'
-                        : 'Legen Sie ein neues Passwort für DayTrack Max fest.',
+            function (string $token) use ($user, $accountLocked, $expiresIn, $locale): void {
+                $url = $this->frontendURL('/reset-password?token=' . rawurlencode($token) . '&lang=' . $locale);
+                $this->mail->send('reset-password', $locale, $user['email'], lang('DayTrack.email.reset.subject', [], $locale), [
+                    'preview_text' => lang(
+                        $accountLocked ? 'DayTrack.email.reset.lockedPreview' : 'DayTrack.email.reset.preview',
+                        [],
+                        $locale,
+                    ),
                     'user_name' => $user['name'],
-                    'reset_message' => $accountLocked
-                        ? 'Ihr Konto wurde nach drei fehlgeschlagenen Anmeldeversuchen gesperrt. Legen Sie ein neues Passwort fest, um es wieder zu verwenden.'
-                        : 'Über diesen Link können Sie ein neues Passwort festlegen.',
-                    'reset_note' => 'Der Link ist ' . $expiresIn . ' gültig.'
-                        . ($accountLocked ? '' : ' Falls Sie das nicht waren, können Sie diese E-Mail ignorieren.'),
+                    'reset_message' => lang(
+                        $accountLocked ? 'DayTrack.email.reset.lockedMessage' : 'DayTrack.email.reset.message',
+                        [],
+                        $locale,
+                    ),
+                    'reset_note' => lang(
+                        $accountLocked ? 'DayTrack.email.reset.lockedNote' : 'DayTrack.email.reset.note',
+                        [$expiresIn],
+                        $locale,
+                    ),
                     'reset_url' => $url,
                 ]);
             },
@@ -406,26 +457,17 @@ class AuthService
         }
     }
 
-    /**
-     * @return array{token: string, id: int}
-     */
-    private function issueToken(int $userId, string $purpose, int $minutes): array
+    private function deliverToken(int $userId, string $purpose, int $minutes, callable $deliver): void
     {
         $token = bin2hex(random_bytes(32));
-        $expiresAt = $this->now()->modify("+{$minutes} minutes")->format('Y-m-d H:i:s');
+        $now = new DateTimeImmutable('now', new DateTimeZone(config('App')->appTimezone));
+        $expiresAt = $now->modify("+{$minutes} minutes")->format('Y-m-d H:i:s');
         $tokenId = (int) $this->tokens->insert([
             'user_id' => $userId,
             'purpose' => $purpose,
             'token_hash' => hash('sha256', $token),
             'expires_at' => $expiresAt,
         ], true);
-
-        return ['token' => $token, 'id' => $tokenId];
-    }
-
-    private function deliverToken(int $userId, string $purpose, int $minutes, callable $deliver): void
-    {
-        ['token' => $token, 'id' => $tokenId] = $this->issueToken($userId, $purpose, $minutes);
 
         try {
             $deliver($token);
@@ -443,12 +485,12 @@ class AuthService
     private function findToken(string $token, array $purposes): array
     {
         if (preg_match('/^[a-f0-9]{64}$/', $token) !== 1) {
-            throw new ApiException('INVALID_TOKEN', 'Der Link ist ungültig oder abgelaufen.', 422);
+            throw new ApiException('INVALID_TOKEN', lang('DayTrack.auth.invalidToken'), 422);
         }
 
         $storedToken = $this->tokens->findValid(hash('sha256', $token), $purposes);
         if ($storedToken === null) {
-            throw new ApiException('INVALID_TOKEN', 'Der Link ist ungültig oder abgelaufen.', 422);
+            throw new ApiException('INVALID_TOKEN', lang('DayTrack.auth.invalidToken'), 422);
         }
 
         return $storedToken;
@@ -458,7 +500,7 @@ class AuthService
     {
         $user = $this->users->find($userId);
         if ($user === null) {
-            throw new ApiException('USER_NOT_FOUND', 'Das Benutzerkonto wurde nicht gefunden.', 404);
+            throw new ApiException('USER_NOT_FOUND', lang('DayTrack.auth.userNotFound'), 404);
         }
 
         return $user;
@@ -474,23 +516,18 @@ class AuthService
         return rtrim($this->config->frontendURL, '/') . $path;
     }
 
-    private function now(): DateTimeImmutable
-    {
-        return new DateTimeImmutable('now', new DateTimeZone(config('App')->appTimezone));
-    }
-
-    private function durationLabel(int $minutes): string
+    private function durationLabel(int $minutes, string $locale): string
     {
         if ($minutes % 1440 === 0) {
             $days = intdiv($minutes, 1440);
-            return $days === 1 ? '24 Stunden' : "{$days} Tage";
+            return lang($days === 1 ? 'DayTrack.email.duration.oneDay' : 'DayTrack.email.duration.days', [$days], $locale);
         }
 
         if ($minutes % 60 === 0) {
             $hours = intdiv($minutes, 60);
-            return $hours === 1 ? 'eine Stunde' : "{$hours} Stunden";
+            return lang($hours === 1 ? 'DayTrack.email.duration.oneHour' : 'DayTrack.email.duration.hours', [$hours], $locale);
         }
 
-        return "{$minutes} Minuten";
+        return lang('DayTrack.email.duration.minutes', [$minutes], $locale);
     }
 }

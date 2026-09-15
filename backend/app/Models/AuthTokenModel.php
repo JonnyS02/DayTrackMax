@@ -29,6 +29,11 @@ class AuthTokenModel extends Model
         $this->where('user_id', $userId)->where('purpose', $purpose)->delete();
     }
 
+    public function deleteForUser(int $userId): void
+    {
+        $this->where('user_id', $userId)->delete();
+    }
+
     public function deleteOtherForUserAndPurpose(int $userId, string $purpose, int $tokenId): void
     {
         $this

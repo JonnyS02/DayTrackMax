@@ -7,6 +7,7 @@ use App\Models\BirthdayModel;
 use App\Models\UserModel;
 use App\Services\AuthService;
 use App\Services\BirthdayService;
+use App\Services\DemoAccountService;
 use App\Services\MailService;
 use App\Services\MaintenanceService;
 use CodeIgniter\Config\BaseService;
@@ -72,5 +73,20 @@ class Services extends BaseService
         }
 
         return new MaintenanceService(config(DayTrack::class));
+    }
+
+    public static function demoAccountService(bool $getShared = true): DemoAccountService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('demoAccountService');
+        }
+
+        return new DemoAccountService(
+            new UserModel(),
+            new BirthdayModel(),
+            new AuthTokenModel(),
+            db_connect(),
+            config(DayTrack::class),
+        );
     }
 }

@@ -3,6 +3,7 @@
 return [
     'alpha_numeric' => '{field} darf nur Buchstaben und Zahlen enthalten.',
     'exact_length' => '{field} muss genau {param} Zeichen lang sein.',
+    'in_list' => '{field} muss einen der folgenden Werte enthalten: {param}.',
     'matches' => '{field} stimmt nicht mit {param} überein.',
     'max_length' => '{field} darf höchstens {param} Zeichen lang sein.',
     'min_length' => '{field} muss mindestens {param} Zeichen lang sein.',

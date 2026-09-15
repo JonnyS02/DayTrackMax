@@ -15,6 +15,7 @@ class UserModel extends Model
         'name',
         'email',
         'pending_email',
+        'locale',
         'password_hash',
         'email_verified',
         'failed_login_attempts',

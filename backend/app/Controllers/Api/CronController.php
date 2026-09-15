@@ -13,10 +13,12 @@ class CronController extends ApiController
             $deletedThrottleEntries = service('maintenanceService')->clearThrottleCache();
             $result = service('birthdayService')->sendDueReminders();
             service('authService')->deleteExpiredTokens();
+            $demoAccount = service('demoAccountService')->reset();
 
             return $this->data($result + [
                 'deletedLogs' => $deletedLogs,
                 'deletedThrottleEntries' => $deletedThrottleEntries,
+                'demoAccount' => $demoAccount,
             ]);
         });
     }
