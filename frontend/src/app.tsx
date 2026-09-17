@@ -9,6 +9,7 @@ export function App() {
     <Routes>
       <Route path={screenRoutes.dashboard} element={<Dashboard />} />
       <Route path={screenRoutes.login} element={<AuthScreens screen="login" />} />
+      <Route path={screenRoutes['test-login']} element={<AuthScreens screen="test-login" />} />
       <Route path={screenRoutes.register} element={<AuthScreens screen="register" />} />
       <Route path={screenRoutes['verify-email']} element={<AuthScreens screen="verify-email" />} />
       <Route path={screenRoutes['forgot-password']} element={<AuthScreens screen="forgot-password" />} />

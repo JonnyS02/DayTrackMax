@@ -2,15 +2,10 @@
 
 DayTrack Max is a compact birthday reminder application with a React frontend and a CodeIgniter 4 backend. Users can manage birthdays and individual email reminders, while the backend handles authentication, email verification, password recovery, and scheduled notifications.
 
+**[Try the demo here](https://jonathan-stengl.de/DayTrackMax/test-login)**
+
 - `frontend/`: React, Tailwind, and the MJML sources
 - `backend/`: CodeIgniter 4 API and generated email views
-
-## Try it out
-
-[Open DayTrack Max](https://jonathan-stengl.de/DayTrackMax/) and log in with the demo account:
-
-- Email: `demo@daytrackmax.test`
-- Password: `DayTrack-Demo-2026!`
 
 ## Local setup
 
@@ -44,5 +39,7 @@ Builds are saved to `frontend/dist` and copied to `backend/public`. Build email 
 Run `composer install` in `backend/`. Schedule a daily `POST /api/cron/birthday-reminders` with the header `X-Cron-Key: <daytrack.cronKey>`.
 
 Set `daytrack.demoAccountEnabled = true`, `daytrack.demoAccountEmail`, and `daytrack.demoAccountPassword` in `backend/.env` to enable the demo account. The daily endpoint creates it in English with sample birthdays and resets it on each run.
+
+Keep the credentials in `frontend/src/demo-account.ts` in sync with the backend configuration and rebuild the frontend after changes.
 
 After building, upload `backend/` to `htdocs/DayTrackMax` to serve the app at `/DayTrackMax/`. Alternatively, use `backend/public` as the web root.

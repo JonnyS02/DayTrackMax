@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Check, Circle, Eye, EyeOff, KeyRound, LockKeyhole, Mail, MailCheck, ShieldAlert, UserRound, X } from 'lucide-react';
 import { ChangeEventHandler, FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError, errorMessage, formErrors } from '../api';
+import { demoAccount } from '../demo-account';
 import { gradientStyles, uiStyles } from '../design';
 import { screenRoutes } from '../routes';
 import type { Screen } from '../types';
@@ -89,7 +90,7 @@ function PasswordRequirementList({ id, password }: { id: string; password: strin
   );
 }
 
-function PasswordField({ label, id = 'password', autoComplete = 'current-password', error, value, onChange, showRequirements = false }: { label?: string; id?: string; autoComplete?: string; error?: string; value?: string; onChange?: ChangeEventHandler<HTMLInputElement>; showRequirements?: boolean }) {
+function PasswordField({ label, id = 'password', autoComplete = 'current-password', error, value, onChange, readOnly = false, showRequirements = false }: { label?: string; id?: string; autoComplete?: string; error?: string; value?: string; onChange?: ChangeEventHandler<HTMLInputElement>; readOnly?: boolean; showRequirements?: boolean }) {
   const { copy } = useApp();
   const [visible, setVisible] = useState(false);
   const requirementsId = `${id}-requirements`;
@@ -106,6 +107,7 @@ function PasswordField({ label, id = 'password', autoComplete = 'current-passwor
         error={error}
         value={value}
         onChange={onChange}
+        readOnly={readOnly}
         aria-describedby={showRequirements ? requirementsId : undefined}
         required
       />
@@ -119,7 +121,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
   return <button onClick={onClick} className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-stone-500 transition hover:text-coral-600 sm:mb-8"><ArrowLeft size={16} /> {copy.common.back}</button>;
 }
 
-function Login() {
+function Login({ demo = false }: { demo?: boolean }) {
   const { copy, navigate } = useApp();
   const route = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -129,9 +131,10 @@ function Login() {
     setBusy(true);
     setFeedback({ message: '', fields: {} });
     const form = new FormData(event.currentTarget);
-    const email = String(form.get('email') ?? '');
+    const email = demo ? demoAccount.email : String(form.get('email') ?? '');
+    const password = demo ? demoAccount.password : String(form.get('password') ?? '');
     try {
-      await api.login(email, String(form.get('password') ?? ''));
+      await api.login(email, password);
       navigate('dashboard');
     } catch (requestError) {
       if (requestError instanceof ApiError && requestError.code === 'ACCOUNT_LOCKED') {
@@ -147,13 +150,28 @@ function Login() {
   };
 
   return (
-    <AuthLayout><AuthPanel><Title>{copy.auth.login.title}</Title><form onSubmit={submit} className={uiStyles.formStack}>
-      <Field id="login-email" name="email" label={copy.common.email} type="email" autoComplete="email" placeholder="name@example.com" icon={<Mail size={17} />} error={feedback.fields.email} required />
-      <PasswordField error={feedback.fields.password} />
-      <div className="text-right text-sm"><button type="button" onClick={() => navigate('forgot-password')} className={uiStyles.textLink}>{copy.auth.login.forgotPassword}</button></div>
-      <FormError message={feedback.message} />
-      <Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? copy.auth.login.submitting : copy.auth.login.submit}</Button>
-    </form><p className="mt-7 text-center text-sm text-stone-500">{copy.auth.login.noAccount} <button onClick={() => navigate('register')} className={cn('font-black', uiStyles.textLink)}>{copy.auth.login.register}</button></p></AuthPanel></AuthLayout>
+    <AuthLayout>
+      <AuthPanel>
+        <Title>{demo ? copy.auth.testLogin.title : copy.auth.login.title}</Title>
+        <form onSubmit={submit} className={uiStyles.formStack}>
+          <Field id="login-email" name="email" label={copy.common.email} type="email" autoComplete={demo ? 'off' : 'email'} placeholder="name@example.com" icon={<Mail size={17} />} error={feedback.fields.email} value={demo ? demoAccount.email : undefined} readOnly={demo} required />
+          <PasswordField error={feedback.fields.password} autoComplete={demo ? 'off' : 'current-password'} value={demo ? demoAccount.password : undefined} readOnly={demo} />
+          {!demo && <div className="text-right text-sm"><button type="button" onClick={() => navigate('forgot-password')} className={uiStyles.textLink}>{copy.auth.login.forgotPassword}</button></div>}
+          <FormError message={feedback.message} />
+          <Button type="submit" size="large" className="w-full" disabled={busy}>{busy ? copy.auth.login.submitting : copy.auth.login.submit}</Button>
+        </form>
+        <p className="mt-7 text-center text-sm text-stone-500">
+          {demo
+            ? <Link to={screenRoutes.login} className={cn('font-black', uiStyles.textLink)}>{copy.auth.testLogin.standardLogin}</Link>
+            : <>{copy.auth.login.noAccount} <button onClick={() => navigate('register')} className={cn('font-black', uiStyles.textLink)}>{copy.auth.login.register}</button></>}
+        </p>
+        <a href="https://github.com/JonnyS02/DayTrackMax" target="_blank" rel="noopener noreferrer" aria-label={copy.auth.login.sourceCode} title={copy.auth.login.sourceCode} className={cn('mx-auto mt-5 grid h-10 w-10 place-items-center rounded-xl border border-sand-200 bg-white/40 text-stone-500 hover:bg-white hover:text-plum-800', uiStyles.focusRing)}>
+          <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+          </svg>
+        </a>
+      </AuthPanel>
+    </AuthLayout>
   );
 }
 
@@ -375,7 +393,8 @@ export function AuthScreens({ screen }: { screen: Exclude<Screen, 'dashboard' | 
   useEffect(clearUserLocale, [clearUserLocale]);
 
   switch (screen) {
-    case 'login': return <Login />;
+    case 'login': return <Login key="login" />;
+    case 'test-login': return <Login key="test-login" demo />;
     case 'register': return <Register />;
     case 'verify-email': return <VerifyEmail />;
     case 'forgot-password': return <ForgotPassword />;

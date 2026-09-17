@@ -19,7 +19,7 @@ ServerSignature Off
 
     # Only known React pages may receive the application shell.
     RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
-    RewriteRule ^(?:|login/?|register/?|verify-email/?|forgot-password/?|locked/?|reset-password/?|profile/?)$ public/index.html [END]
+    RewriteRule ^(?:|login/?|test-login/?|register/?|verify-email/?|forgot-password/?|locked/?|reset-password/?|profile/?)$ public/index.html [END]
 
     # Only generated frontend assets and intentional public metadata are files on the web.
     RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]

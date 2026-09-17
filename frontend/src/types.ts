@@ -1,6 +1,7 @@
 export type Screen =
   | 'dashboard'
   | 'login'
+  | 'test-login'
   | 'register'
   | 'verify-email'
   | 'forgot-password'
